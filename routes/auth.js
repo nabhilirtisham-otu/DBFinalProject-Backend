@@ -4,7 +4,7 @@ Handles registration, login, and logout.
 
 const expresslib = require('express');                              //Import Express.js library
 const bcryptlib =  require('bcrypt');                               //Import bcrypt (password hashing) library
-const db = require('../dbHelper.js');                                        //Import dbHelper.js (DB connection pool file)
+const dbHelper = require('../dbHelper.js');                                        //Import dbHelper.js (DB connection pool file)
 const { validAuth, destroySess } = require('../middleware/auth.js');        //Import middleware functions from auth.js (middleware folder)
 const expRouter = expresslib.Router()                                  //Create Express router instance
 
@@ -18,7 +18,7 @@ expRouter.post('/register', async(req, res) => {                    //Express.js
 
         const hashPwd = await bcryptlib.hash(pwd, 10);              //Hashes user's password with 10 rounds of encryption
 
-        const [addUser] = await db.query(                           //Insert the new user into the Users table of the DB
+        const [addUser] = await dbHelper.query(                           //Insert the new user into the Users table of the DB
             `INSERT INTO Users (userName, email, pwd, userRole)
             VALUES (?, ?, ?, ?)`,
             [userName, email, hashPwd, userRole]
@@ -40,7 +40,7 @@ expRouter.post('/login', async(req, res) => {
             return res.status(400)({ message: 'Please fill in email and password.'});
         }
 
-        const [userRows] = await db.query('SELECT * FROM Users WHERE email = ?', [email]);  //Return users in Users matching the email address
+        const [userRows] = await dbHelper.query('SELECT * FROM Users WHERE email = ?', [email]);  //Return users in Users matching the email address
         if (userRows.length === 0){
             return res.status(404).json({message: 'User not found.'});      //Error handling if user not in Users table
         }
