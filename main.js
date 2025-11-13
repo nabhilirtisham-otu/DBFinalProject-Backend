@@ -14,4 +14,44 @@ dotenv.configure();                                     //Load environment varia
 const dbHelper = require('./dbHelper');                 //Import DB connection from pool in dbHelper.js, letting routes query the DB
 const authRoutes = require('/routes/auth.js');          //Import authentication routes from routes/auth.js (endpoints)
 
-const app = express();                                  //Initialize Express app, all routes/middleware/etc. connected to it
+const mainApp = express();                              //Initialize Express app, all routes/middleware/etc. connected to it
+
+mainApp.use(cors({                                      //Connect to frontend using CORS
+    origin: 'http://localhost:3000',                    //Frontend domain
+    credentials: true                                   //Session cookies can be sent with requests
+}));
+
+mainApp.use(parser.json());                             //Parse JSON incoming into req.body
+mainApp.use(parser.urlencoded({ extended: true}));      //Parse URL-encoded form data 
+
+const sessionStore = new MySQLStore({}, dbHelper.promise().pool);   //Session store linked to MySQL DB (connection pool from dbHelper.js)
+
+//Initialized session information
+mainApp.use(session({
+    key: 'user_session',                                //Session cookie name
+    secret: process.env.SESSIONSECRET,                  //Encrypts session ID, loaded from .env
+    store: sessionStore,                                //Saves sessions in MySQL
+    resave: false,                                      //If the session isn't modified, it isn't stored
+    saveUnitialized: false,                             //Unauthenticated users don't have sessions created
+    cookie: {                                           //Cookie settings
+        maxAge: 86400,                                  //Valid for one day
+        secure: false,                                  //True only when using HTTPS
+        httpOnly: true                                  //Client-side JS can't access cookies
+    }
+}));
+
+//DB connection tester
+dbHelper.query('SELECT 1')
+    .then(() => console.log('Successful connection.'))
+    .catch(err => console.error('Connection failed.', err));
+
+mainApp.use('/api/auth', authRoutes);                   //Mount all routes under /api/auth, clean and modular
+
+//Basic route for root URL, checks if server running
+mainApp.get('/', (req, res) => {
+    res.send('Backend check');
+});
+
+//Reads PORT from .env, starts the Express server, logs the runnning port
+const PORT = process.env.PORT;
+mainApp.listen(PORT, () => console.log(`Server running on port ${PORT}`));
