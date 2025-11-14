@@ -44,3 +44,33 @@ expRouter.get('/', async (req, res) => {
         res.status(500).json({ error: 'Server error'});
     }
 });
+
+//POST endpoint for creating ticket listing (only organizers)
+expRouter.post('/', validAuth, validRole(['Organizer']), async (req, rest) => {
+    try{
+        const { eID, sID, tPrice } = req.body;                      //Read POST request JSON body information
+        
+        //Error handling
+        if (!eID || !sID || !validNum(Number(tPrice))) {
+            return res.status(400).json({error: 'Invalid information.'});
+        }
+
+        try {                                                           //INSERT a new ticket into the DB
+            const [insertTicket] = await connPool.query(
+                `INSER INTO Ticket (event_id, seat_id, ticket_price, ticket_status)
+                VALUES (?, ?, ?, 'Available)`,
+                [eID, sID, tPrice]
+            );
+
+            return res.status(201).json({message: 'Ticket successfully created.', ticketID: result.insertID});  //Success message, returning ticketID
+        } catch (error) {                                               //Duplicate ticket error handling
+            if (error && err.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({error:'Seat already lsited for event.'});
+            }
+            throw error;                                                //If error isn't a duplicate ticket error, throw an error
+        }
+    } catch (error) {                                                   //Error handling and logging
+        console.error('POST /api/tickets/error', error);
+        res.status(500).json({error: 'Server error'});
+    }
+});
