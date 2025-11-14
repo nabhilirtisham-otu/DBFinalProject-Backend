@@ -102,13 +102,13 @@ expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
     try{
         const orgID = req.session.user.users_id || req.session.user.id;     //Get the organizer uID from the current session object
         const { vID, title, eventDesc, startTime, endTime,
-            standardPrice, categories = [], performers = []} = req.body;    //Get event details from the body of the POST request
+            stPrice, categories = [], performers = []} = req.body;    //Get event details from the body of the POST request
     
         //Error handling for event details
         if (!validString(title) || !vID || !validDate(startTime)){
             return res.status(400).json({error: 'Missing/invalid fields.'});
         }
-        if (standardPrice !== undefined && !validNum(Number(standardPrice))){
+        if (stPrice !== undefined && !validNum(Number(stPrice))){
             return res.status(400).json({error: 'Invalid price.'});
         }
 
@@ -116,7 +116,7 @@ expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
             `INSERT INTO Event_ (organizer_id, venue_id, title, event_description, start_time, end_time,
                 standard_price, event_status)
             VALUES (?, ?, ?, ?, ?, ?, ?, 'Scheduled')`,
-            [orgID, vID, title, eventDesc || null, startTime, endTime || null, standardPrice || 0.0]    //null handles missing (optional) information
+            [orgID, vID, title, eventDesc || null, startTime, endTime || null, stPrice || 0.0]    //null handles missing (optional) information
         );
 
         const eID = newEvent.insertId;                                  //Return the auto-incremented ID of the new event
@@ -155,5 +155,43 @@ expRouter.put('/:id', validAuth, validRole(['Organizers']), async (req, res) => 
         if (evOrgID[0].organizer_id !== orgID){                             //Organizers can only edit events they own
                 return res.status(403).json({error:'Forbidden'});
         };
+
+        const {vID, title, eventDesc, startTime, endTime, stPrice, eventStatus} = req.body;     //Body fields to be updated
+        const updateStmt = [];                                          //Used in buidling the SQL UPDATE statement
+        const SQLParams = [];
+
+        //For all the provided fields, add a column update and push the new value
+        if (vID){
+            updateStmt.push('venue_id=?');
+            SQLParams.push(vID);
+        }
+        if (title){
+            updateStmt.push('title=?');
+            SQLParams.push(title);
+        }
+        if (eventDesc !== undefined){
+            updateStmt.push('event_description=?');
+            SQLParams.push(eventDesc);
+        }
+        if (startTime){
+            updateStmt.push('start_time=?');
+            SQLParams.push(startTime);
+        }
+        if (endTime){
+            updateStmt.push('end_time=?');
+            SQLParams.push(endTime);
+        }
+        if (stPrice !== undefined){
+            updateStmt.push('standard_price=?');
+            SQLParams.push(stPrice);
+        }
+        if (eventStatus){
+            updateStmt.push('event_status=?');
+            SQLParams.push(eventStatus);
+        }
+
+        if (updateStmt.length === 0){                                   //UPDATE query only runs if information is provided
+            return res.status(400).json({error: 'No updates found.'});
+        }
     }
 });
