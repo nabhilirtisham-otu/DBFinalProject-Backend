@@ -61,7 +61,7 @@ expRouter.get('/', async(req, res) => {
     }
 });
 
-//Another GET route for a single event at /api/events
+//Another GET endpoint for a single event at /api/events
 expRouter.get('/:id', async (req, res) => {
     const eventID = parseInt(req.params.id);                            //Reads and converts the ID from the URL into an int
     if (!eventID){                                                      //Error handling
@@ -95,4 +95,46 @@ expRouter.get('/:id', async (req, res) => {
         console.error('GET /api/events/:id error', error);
         res.status(500).json({error:'Server error'});
     }
-})
+});
+
+//POST endpoint for creating new events (must be logged in and must be 'Organizer')
+expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
+    try{
+        const orgID = req.session.user.users_id || req.session.user.id;     //Get the organizer uID from the current session object
+        const { vID, title, eventDesc, startTime, endTime,
+            standardPrice, categories = [], performers = []} = req.body;    //Get event details from the body of the POST request
+    
+        //Error handling for event details
+        if (!validString(title) || !vID || !validDate(startTime)){
+            return res.status(400).json({error: 'Missing/invalid fields.'});
+        }
+        if (standardPrice !== undefined && !validNum(Number(standardPrice))){
+            return res.status(400).json({error: 'Invalid price.'});
+        }
+
+        const [newEvent] = await pool.query(                                //Insert a new row into Event_ with all the information provided above
+            `INSERT INTO Event_ (organizer_id, venue_id, title, event_description, start_time, end_time,
+                standard_price, event_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'Scheduled')`,
+            [orgID, vID, title, eventDesc || null, startTime, endTime || null, standardPrice || 0.0]    //null handles missing (optional) information
+        );
+
+        const eID = newEvent.insertId;                                  //Return the auto-incremented ID of the new event
+
+        if (Array.isArray(categories) && categories.length) {           //For any category IDs provided, insert them into Event_Categories with the associated event
+            const categoryPairs = categories.map(cID => [eID, cID]);
+            await connPool.query(`INSERT INTO Event_Category (event_id, category_id)
+                VALUES ?`, [categoryPairs]);
+        }
+        if (Array.isArray(performers) && performers.length) {           //Same as above but for the performers array
+            const performerPairs = performers.map(pID => [eID, pID]);
+            await connPool.query(`INSERT INTO Event_Performer (event_id, performer_id)
+                VALUES ?`, [performerPairs]);
+        }
+
+        res.status(201).json({message: 'Event successfully created', eID});     //Returns success message and event ID
+    } catch (error){
+        console.error('POST /api/events error', err);
+        res.status(500).json({error: 'Server error'});
+    }
+});
