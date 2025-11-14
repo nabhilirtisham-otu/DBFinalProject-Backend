@@ -60,3 +60,39 @@ expRouter.get('/', async(req, res) => {
         res.status(500)({ error: 'Server error'});
     }
 });
+
+//Another GET route for a single event at /api/events
+expRouter.get('/:id', async (req, res) => {
+    const eventID = parseInt(req.params.id);                            //Reads and converts the ID from the URL into an int
+    if (!eventID){                                                      //Error handling
+        return res.status(400).json({error: 'Invalid event ID'});
+    }
+
+    try{
+        const [eventRows] = await connPool.query(                       //Query the DB for the event with the specified ID, joining the venue info
+            `SELECT  e.*, v.venue_name, v.city, v.loc_address
+            FROM Event_ e JOIN Venue v ON e.venue_id = v.venue_id
+            WHERE e.event_id=?`, [eventID]                              //'?' ensures safe insertion
+        );
+        if (eventRows.length === 0){                                    //Error handling
+            return res.status(404).json({error:'Event with specified ID found'});
+        }
+
+        const event = eventRows[0];                                     //Select the first event record
+        const [ticketCounts] = await connPool.query(                        //Counts how many tickets in each status category (available, reserved, etc.)
+            `SELECT ticket_status, COUNT(*) AS tcount
+            FROM Ticket WHERE event_id = ?
+            GROUP BY ticket_status`, [eventID]
+        );
+        const [eventTickets] = await connPool.query(                    //Return a list of tickets for the specified event, along with seat details
+            `SELECT t.ticket_id, t.seat_id, t.ticket_price, t.ticket_status,
+                s.section_id, s.seat_number, s.row_num
+            FROM Ticket t JOIN Seat s ON t.seat_id = s.seat_id
+            WHERE t.event_id = ? LIMIT 300`, [eventID]
+        );
+        res.json({ event, ticketCounts, eventTickets });                //Send a JSON response with event, ticket count, and ticket list details
+    } catch (error){                                                    //Handles and logs errors
+        console.error('GET /api/events/:id error', error);
+        res.status(500).json({error:'Server error'});
+    }
+})
