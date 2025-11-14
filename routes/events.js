@@ -3,6 +3,7 @@ const dbHelper = require('../dbHelper.js');                             //Import
 const { validAuth, validRole } = require('../middleware/auth.js');      //Import middleware authentication functions
 const { validNum, validString, validDate} = require('../utils/validatorFunctions.js'); //Import validator functions from utils
 const { param } = require('./auth.js');
+const connPool = require('../dbHelper.js');
 
 const expRouter = expressLib.Router();                                  //Router instance
 
@@ -48,5 +49,14 @@ expRouter.get('/', async(req, res) => {
         if (queryConditions.length){
             baseQuery += ' WHERE ' + queryConditions.join( ' AND ');    //Concatenate filters in queryConditions into baseQuery's WHERE clause
         }
+
+        baseQuery += ' ORDER BY e.start_time ASC LIMIT ? OFFSET?';      //Order and paginate the query
+        queryParams.push(parseInt(limit), parseInt(offset));            //Push the provided limit and offset value in the parameters array
+
+        const [queryRows] = await connPool.query(baseQuery, queryParams);   //Executes query parameters against the DB
+        res.json({ events: rows});                                          //JSON of event rows sent back to client
+    } catch (error){                                                    //Error handling
+        console.error('GET /api/events error:', error);                 //Console logs error, responds with HTTP 500
+        res.status(500)({ error: 'Server error'});
     }
-})
+});
