@@ -138,3 +138,22 @@ expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
         res.status(500).json({error: 'Server error'});
     }
 });
+
+//PUT endpoint for organizers to edit events
+expRouter.put('/:id', validAuth, validRole(['Organizers']), async (req, res) => {
+    const eID = parseINT(req.params.id);                                //Acquire and validate event_id
+    if (!eID){
+        return res.status(400).json({error:'Invalid event ID.'});
+    }
+
+    try{
+        const orgID = req.session.user.users_id || req.session.user.id;     //Get the organizer uID from the current session object
+        const [evOrgID] = await connPool.query('SELECT organizer_id FROM Event_ WHERE event_id = ?', [eID]);  //Check the event organizer_id for ownership
+        if (evOrgID === 0){                                                 //Ensures the event exists in the first place
+            return res.status(404).json({error:'Event not found'});            
+        }
+        if (evOrgID[0].organizer_id !== orgID){                             //Organizers can only edit events they own
+                return res.status(403).json({error:'Forbidden'});
+        };
+    }
+});
