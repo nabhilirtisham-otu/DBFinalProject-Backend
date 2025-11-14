@@ -74,3 +74,42 @@ expRouter.post('/', validAuth, validRole(['Organizer']), async (req, rest) => {
         res.status(500).json({error: 'Server error'});
     }
 });
+
+//PUT endpoint for updating ticket information (only organizers)
+expRouter.put('/:id', validAuth, validRole(['Organizer']), async (req, res) => {
+    const tID = parseInt(req.params.id);                                //Retrieve ticket ID and perform error handling
+    if (!tID){
+        return res.status(400).json({error: 'Invalid ticket ID.'});
+    }
+    
+    try {
+        const {tPrice, tStatus} = req.body;                             //Read fields to be updated from the request body
+        const updateInfo = [];                                          //Arrays used in SQL updates
+        const updateParams = [];
+
+        //Update the ticket price if provided and valid
+        if (tPrice !== undefined) {
+            if (!validNum(Number(tPrice))){
+                return res.status(400).json({error: 'Invalid price.'});
+            }
+            updateInfo.push('ticket_price=?');
+            updateParams.push(tPrice);
+        }
+
+        if (tStatus) {                                                  //Update the ticket status if provided
+            updateInfo.push('ticket_status=?')
+            updateParams.push(tStatus);
+        }
+
+        if (updateParams.length === 0){                                 //Ensure update information is provided in the first place
+            return res.status(400).json({error: 'No update information provided.'});
+        }
+        
+        updateParams.push(tID);
+        await connPool.query(`UPDATE Ticket SET ${updateInfo.join(', ')} WHERE ticket_id = ?`, updateParams);   //Execute SQL UPDATE statement
+        res.json({message: 'Ticket updated successfully.'});
+    } catch (error) {                                                   //Error handling and logging
+        console.error('PUT /api/tickets/:id error', error);
+        res.status(500).json({error: 'Server error'});
+    }
+});
