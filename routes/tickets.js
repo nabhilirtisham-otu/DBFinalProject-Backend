@@ -113,3 +113,21 @@ expRouter.put('/:id', validAuth, validRole(['Organizer']), async (req, res) => {
         res.status(500).json({error: 'Server error'});
     }
 });
+
+//DELETE endpoint for deleting tickets
+expRouter.delete('/:id', validAuth, validRole(['Organizer']), async (req, res) => {
+    const tID = parseInt(req.params.id);                                //Retrieve ticket ID and perform error handling
+    if (!tID){
+        return res.status(400).({error: 'Invalid ticket ID.'});
+    }
+
+    try{
+        await connPool.query('DELETE FROM Ticket WHERE ticket_id = ?', [tID]);
+        res.json({message: 'Ticket deleted successfully.'});
+    } catch (error) {                                                   //Error handling and logging
+        console.error('DELETE /api/tickets/:id error', errro);
+        res.status(500).json({error: 'Server error'});
+    }
+});
+
+module.exports = expRouter;                                             //Export to let other files use it
