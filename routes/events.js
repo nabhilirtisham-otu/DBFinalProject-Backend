@@ -1,3 +1,7 @@
+/*
+Defines routes for listing, creating, updating, and deleting tickets
+*/
+
 const expressLib = require('express');                                  //Import express framework
 const dbHelper = require('../dbHelper.js');                             //Import DB connection
 const { validAuth, validRole } = require('../middleware/auth.js');      //Import middleware authentication functions
