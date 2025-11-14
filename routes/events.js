@@ -157,41 +157,50 @@ expRouter.put('/:id', validAuth, validRole(['Organizers']), async (req, res) => 
         };
 
         const {vID, title, eventDesc, startTime, endTime, stPrice, eventStatus} = req.body;     //Body fields to be updated
-        const updateStmt = [];                                          //Used in buidling the SQL UPDATE statement
+        const updateInfo = [];                                          //Used in buidling the SQL UPDATE statement
         const SQLParams = [];
 
         //For all the provided fields, add a column update and push the new value
         if (vID){
-            updateStmt.push('venue_id=?');
+            updateInfo.push('venue_id=?');
             SQLParams.push(vID);
         }
         if (title){
-            updateStmt.push('title=?');
+            updateInfo.push('title=?');
             SQLParams.push(title);
         }
         if (eventDesc !== undefined){
-            updateStmt.push('event_description=?');
+            updateInfo.push('event_description=?');
             SQLParams.push(eventDesc);
         }
         if (startTime){
-            updateStmt.push('start_time=?');
+            updateInfo.push('start_time=?');
             SQLParams.push(startTime);
         }
         if (endTime){
-            updateStmt.push('end_time=?');
+            updateInfo.push('end_time=?');
             SQLParams.push(endTime);
         }
         if (stPrice !== undefined){
-            updateStmt.push('standard_price=?');
+            updateInfo.push('standard_price=?');
             SQLParams.push(stPrice);
         }
         if (eventStatus){
-            updateStmt.push('event_status=?');
+            updateInfo.push('event_status=?');
             SQLParams.push(eventStatus);
         }
 
-        if (updateStmt.length === 0){                                   //UPDATE query only runs if information is provided
+        if (updateInfo.length === 0){                                   //UPDATE query only runs if information is provided
             return res.status(400).json({error: 'No updates found.'});
         }
+
+        SQLParams.push(eID);
+        const updateStmt = `UPDATE Event_ SET ${updateInfo.join(', ')} WHERE event_id = ?`;     //Concatenates update information into one SQL statement
+        await pool.query(updateStmt, queryParams);                                              //Executes update statement
+
+        res.json({message:'Successful event update.'})                  //Sucess message
+    } catch (error) {                                                   //Error handling and logging
+        console.error('PUT /api/events/:id', error);
+        res.status(500).json({error: 'Server error'});
     }
 });
