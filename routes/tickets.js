@@ -118,7 +118,7 @@ expRouter.put('/:id', validAuth, validRole(['Organizer']), async (req, res) => {
 expRouter.delete('/:id', validAuth, validRole(['Organizer']), async (req, res) => {
     const tID = parseInt(req.params.id);                                //Retrieve ticket ID and perform error handling
     if (!tID){
-        return res.status(400).({error: 'Invalid ticket ID.'});
+        return res.status(400).json({error: 'Invalid ticket ID.'});
     }
 
     try{
