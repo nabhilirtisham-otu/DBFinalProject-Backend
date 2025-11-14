@@ -114,7 +114,7 @@ expRouter.put('/:id', validAuth, validRole(['Organizer']), async (req, res) => {
     }
 });
 
-//DELETE endpoint for deleting tickets
+//DELETE endpoint for deleting tickets (only organizers)
 expRouter.delete('/:id', validAuth, validRole(['Organizer']), async (req, res) => {
     const tID = parseInt(req.params.id);                                //Retrieve ticket ID and perform error handling
     if (!tID){
