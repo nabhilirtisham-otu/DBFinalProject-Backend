@@ -204,3 +204,32 @@ expRouter.put('/:id', validAuth, validRole(['Organizers']), async (req, res) => 
         res.status(500).json({error: 'Server error'});
     }
 });
+
+//DELETE endpoint for organizers to cancel events
+expRouter.delete('/:id', validAuth, validRole(['Organizer']), async (req, res) => {
+    const eID = parseInt(req.params.id);                                //Acquire and validate event_id
+    if (!eID){
+        return res.status(400).json({error: 'Invalid event id.'});
+    }
+
+    //Initial validation similar to previous endpoint
+    try{
+        const orgID = req.session.user.users_id || req.session.user.id;     //Get the organizer uID from the current session object
+        const [evOrgID] = await connPool.query('SELECT organizer_id FROM Event_ WHERE event_id = ?', [eID]);    //Check the event organizer_id for ownership
+        if (evOrgID === 0){                                                 //Ensures the event exists in the first place
+            return res.status(404).json({error:'Event not found'});            
+        }
+        if (evOrgID[0].organizer_id !== orgID){                             //Organizers can only edit events they own
+                return res.status(403).json({error:'Forbidden'});
+        };
+
+        await connPool.query('DELETE FROM Event_ WHERE event_id = ?', [eID]);       //Delete event
+        res.json({message:'Event successfully cancelled.'});                //Success message
+
+    } catch (error) {                                                       //Error handling and logging
+        console.error('DELETE /api/events/:id error', error);
+        res.status(500).json({ error:'Server error'});
+    }
+});
+
+module.exports = expRouter;                                                 //Export to let other files use it
