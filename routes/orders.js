@@ -100,7 +100,21 @@ expRouter.get('/:id', validAuth, async (req, res) => {
         const [paymentInfo] = await pool.query('SELECT * FROM Payment WHERE order_id = ?', [oID]);  //Retrieve payment information for the current order
         res.json({userOrder, userTickets, paymentInfo});                //Return order, tickets, and payment information
     } catch (error) {
-        console.error('GET /api/orders/:id error', error);
+        console.error('GET /api/orders/:id error', error);              //Error handling and logging
         res.status(500).json({error:'Server error'});
     }
 });
+
+//GET endpoint for listing all the orders for the current logged-in user
+expRouter.get('/', validAuth, async (req, res) => {
+    const uID = req.session.user.users_id || req.session.user.id;       //Get the user ID from the current session object
+    try {
+        const orderRows = await pool.query('SELECT * FROM Orders WHERE users_id = ? ORDER BY order_date DESC', [uID]);      //Return all orders belonging to the current suer
+        res.json({orders: orderRows});                  //Send orders back to the client
+    } catch (error) {
+        console.error('GET /api/orders', error);              //Error handling and logging
+        res.status(500).json({error:'Server error'});
+    }
+});
+
+module.exports = expRouter;                                             //Export to let other files use it
