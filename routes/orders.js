@@ -41,5 +41,25 @@ expRouter.post('/', validAuth, async (req, res) => {
         }
 
         const totalTicketPrice = lockedTickets.reduce((sum, r) => sum + Number(r.ticket_price), 0.0);       //Reducer function adding up all ticket prices in locked ticket array
+
+        const [orderRecord] = await connDB.query(                       //Insert the order information into Orders
+            `INSERT INTO Orders (users_id, order_amount, order_status) VALUES (?, ?, 'Paid')`,
+            [uID, totalTicketPrice]
+        );
+        const oID = orderRecord.insertId;                               //Retrieve order ID
+
+        const promises = [];                                            //Array of promises to run all updates in parallel
+        for (const t of tickets) {                                      //Loop through purchased tickets and update ticket status + order ID
+            promises.push(connDB.query(
+                `UPDATE Ticket SET ticket_status = 'Sold', order_id = ? WHERE ticket_id = ?`,
+                [oID, t]
+            ));
+        }
+        await Promise.all(promises);                                    //Attempt to execute all updates and wait
+
+        await connDB.query(                                             //Insert the payment information into Payment
+            `INSERT INTO Payment (order_id, payment_method, payment_amount, payment_status) VALUES (?, ?, ?, 'Completed)`,
+            [oID, payMethod, totalTicketPrice]
+        );
     }
 })
