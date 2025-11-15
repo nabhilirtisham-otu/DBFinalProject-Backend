@@ -45,7 +45,10 @@ dbHelper.query('SELECT 1')
     .then(() => console.log('Successful connection.'))
     .catch(err => console.error('Connection failed.', err));
 
-mainApp.use('/api/auth', authRoutes);                   //Mount all routes under /api/auth, clean and modular
+mainApp.use('/api/auth', auth);                   //Mount all routes under /api/auth
+mainApp.use('/api/events', require('./routes/events.js'));
+mainApp.use('/api/tickets', require('./routes/tickets.js'));
+mainApp.use('/api/orders', require('./routes/orders.js'));
 
 //Basic route for root URL, checks if server running
 mainApp.get('/', (req, res) => {
