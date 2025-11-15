@@ -61,5 +61,17 @@ expRouter.post('/', validAuth, async (req, res) => {
             `INSERT INTO Payment (order_id, payment_method, payment_amount, payment_status) VALUES (?, ?, ?, 'Completed)`,
             [oID, payMethod, totalTicketPrice]
         );
+        await connDB.commit();                                          //Commit changes if all steps succeed
+        res.status(201).json({message:'Order completed successfull', oID, amount:totalTicketPrice});    //JSON success response with order information
+    } catch (error){                                                    //Log server error
+        console.error('POST /api/orders error', error);
+        try{
+            await connDB.rollback();                                    //Attempt to undo changes
+        } catch(err){                                                   //Catch rollback error
+            console.error('Rollback error', err);
+            res.status(500).json({error:'Server error during purchase.'});
+        } finally {                                                     //Release DB connection back to pool
+            connDB.release();
+        }
     }
-})
+});
