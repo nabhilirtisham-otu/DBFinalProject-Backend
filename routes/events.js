@@ -14,7 +14,7 @@ const expRouter = expressLib.Router();                                  //Router
 //GET endpoint to list/search events at /api/events
 expRouter.get('/', async(req, res) => {
     try{
-        const { q, category, city, startDate, endDate, limit, offset=0 } = req.query;   //Extra URL query string parameters
+        const { q, category, city, startDate, endDate, limit, offset } = req.query;   //Extra URL query string parameters
         const queryConditions = [];                                     //Stores WHERE clause conditions  
         const queryParams = [];                                         //Stores actual parameter values
 
@@ -54,14 +54,24 @@ expRouter.get('/', async(req, res) => {
             baseQuery += ' WHERE ' + queryConditions.join( ' AND ');    //Concatenate filters in queryConditions into baseQuery's WHERE clause
         }
 
-        baseQuery += ' ORDER BY e.start_time ASC LIMIT ? OFFSET?';      //Order and paginate the query
-        queryParams.push(parseInt(limit), parseInt(offset));            //Push the provided limit and offset value in the parameters array
+        baseQuery += ' ORDER BY e.start_time ASC LIMIT ? OFFSET ?';      //Order and paginate the query
+        let lim = parseInt(limit);                              //Convert limit and offset to numbers
+        let off = parseInt(offset);
+        
+        if (isNaN(lim) || lim <= 0) {                             //Defaults for limit and offset
+            lim = 20;
+        }
+        if (isNaN(off) || off < 0) {
+            off = 0;
+        }
+
+        queryParams.push(lim, off);                            //Push limit and offset to parameters
 
         const [queryRows] = await connPool.query(baseQuery, queryParams);   //Executes query parameters against the DB
-        res.json({ events: rows});                                          //JSON of event rows sent back to client
+        res.json({ events: queryRows});                                          //JSON of event rows sent back to client
     } catch (error){                                                    //Error handling
         console.error('GET /api/events error:', error);                 //Console logs error, responds with HTTP 500
-        res.status(500)({ error: 'Server error'});
+        res.status(500).json({ error: 'Server error'});
     }
 });
 
@@ -78,8 +88,9 @@ expRouter.get('/:id', async (req, res) => {
             FROM Event_ e JOIN Venue v ON e.venue_id = v.venue_id
             WHERE e.event_id=?`, [eventID]                              //'?' ensures safe insertion
         );
+
         if (eventRows.length === 0){                                    //Error handling
-            return res.status(404).json({error:'Event with specified ID found'});
+            return res.status(404).json({error:'Event with specified ID not found'});
         }
 
         const event = eventRows[0];                                     //Select the first event record
@@ -104,7 +115,7 @@ expRouter.get('/:id', async (req, res) => {
 //POST endpoint for creating new events (must be logged in and must be 'Organizer')
 expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
     try{
-        const orgID = req.session.user.users_id || req.session.user.id;     //Get the organizer uID from the current session object
+        const orgID = req.session.user.id;     //Get the organizer uID from the current session object
         const { vID, title, eventDesc, startTime, endTime,
             stPrice, categories = [], performers = []} = req.body;    //Get event details from the body of the POST request
     
@@ -116,7 +127,7 @@ expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
             return res.status(400).json({error: 'Invalid price.'});
         }
 
-        const [newEvent] = await pool.query(                                //Insert a new row into Event_ with all the information provided above
+        const [newEvent] = await connPool.query(                                //Insert a new row into Event_ with all the information provided above
             `INSERT INTO Event_ (organizer_id, venue_id, title, event_description, start_time, end_time,
                 standard_price, event_status)
             VALUES (?, ?, ?, ?, ?, ?, ?, 'Scheduled')`,
@@ -138,22 +149,22 @@ expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
 
         res.status(201).json({message: 'Event successfully created', eID});     //Returns success message and event ID
     } catch (error){
-        console.error('POST /api/events error', err);
+        console.error('POST /api/events error', error);
         res.status(500).json({error: 'Server error'});
     }
 });
 
 //PUT endpoint for organizers to edit events
-expRouter.put('/:id', validAuth, validRole(['Organizers']), async (req, res) => {
-    const eID = parseINT(req.params.id);                                //Acquire and validate event_id
+expRouter.put('/:id', validAuth, validRole(['Organizer']), async (req, res) => {
+    const eID = parseInt(req.params.id);                                //Acquire and validate event_id
     if (!eID){
         return res.status(400).json({error:'Invalid event ID.'});
     }
 
     try{
-        const orgID = req.session.user.users_id || req.session.user.id;     //Get the organizer uID from the current session object
+        const orgID = req.session.user.id;     //Get the organizer uID from the current session object
         const [evOrgID] = await connPool.query('SELECT organizer_id FROM Event_ WHERE event_id = ?', [eID]);  //Check the event organizer_id for ownership
-        if (evOrgID === 0){                                                 //Ensures the event exists in the first place
+        if (evOrgID.length === 0){                                                 //Ensures the event exists in the first place
             return res.status(404).json({error:'Event not found'});            
         }
         if (evOrgID[0].organizer_id !== orgID){                             //Organizers can only edit events they own
@@ -200,7 +211,7 @@ expRouter.put('/:id', validAuth, validRole(['Organizers']), async (req, res) => 
 
         SQLParams.push(eID);
         const updateStmt = `UPDATE Event_ SET ${updateInfo.join(', ')} WHERE event_id = ?`;     //Concatenates update information into one SQL statement
-        await pool.query(updateStmt, queryParams);                                              //Executes update statement
+        await connPool.query(updateStmt, SQLParams);                                              //Executes update statement
 
         res.json({message:'Successful event update.'})                  //Sucess message
     } catch (error) {                                                   //Error handling and logging
@@ -220,7 +231,7 @@ expRouter.delete('/:id', validAuth, validRole(['Organizer']), async (req, res) =
     try{
         const orgID = req.session.user.users_id || req.session.user.id;     //Get the organizer uID from the current session object
         const [evOrgID] = await connPool.query('SELECT organizer_id FROM Event_ WHERE event_id = ?', [eID]);    //Check the event organizer_id for ownership
-        if (evOrgID === 0){                                                 //Ensures the event exists in the first place
+        if (evOrgID.length === 0){                                                 //Ensures the event exists in the first place
             return res.status(404).json({error:'Event not found'});            
         }
         if (evOrgID[0].organizer_id !== orgID){                             //Organizers can only edit events they own

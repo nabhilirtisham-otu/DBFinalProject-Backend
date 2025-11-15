@@ -15,7 +15,7 @@ function validAuth(req, res, next){
 //Checks if user role is valid
 function validRole(role){
     return (req, res, next) => {                                                //Calls the function below
-        if (req.session && req.session.user && req.session.user.user_role === role) {       //Validates user role
+        if (req.session && req.session.user && req.session.user.role === role) {       //Validates user role
             return next()                                                           //If valid, move to the next route handler
         } else {
             return res.status(403).json({message: 'Forbidden: Insufficient permissions.'})              //Error message if invalid

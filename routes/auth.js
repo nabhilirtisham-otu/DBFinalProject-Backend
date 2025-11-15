@@ -19,25 +19,26 @@ expRouter.post('/register', async(req, res) => {                    //Express.js
         const hashPwd = await bcryptlib.hash(pwd, 10);              //Hashes user's password with 10 rounds of encryption
 
         const [addUser] = await dbHelper.query(                           //Insert the new user into the Users table of the DB
-            `INSERT INTO Users (userName, email, pwd, userRole)
+            `INSERT INTO Users (users_name, email, pwd, user_role)
             VALUES (?, ?, ?, ?)`,
             [userName, email, hashPwd, userRole]
         );
 
-        res.status(201).json({message: 'Sucessful registration.', userID: addUser.insertID});   //Successfull HTTP 201 response and the new user ID
+        res.status(201).json({message: 'Sucessful registration.', userID: addUser.insertId});   //Successfull HTTP 201 response and the new user ID
+        
     } catch (error) {                                               //Error display if registration error occurs
         console.error('Registration error:', error);
-        res.status(500).json({message: 'Registration error:'});
+        res.status(500).json({message: 'Registration error.'});
     }
 });
 
 //User login POST route
 expRouter.post('/login', async(req, res) => {
     try{
-        const{email, pwd} = req.body;                               //User login information extracted from frontend form fields
+        const{email, password} = req.body;                               //User login information extracted from frontend form fields
 
-        if (!email || !pwd){                                        //Error handling ensures nonempty inputs
-            return res.status(400)({ message: 'Please fill in email and password.'});
+        if (!email || !password){                                        //Error handling ensures nonempty inputs
+            return res.status(400).json({ message: 'Please fill in email and password.'});
         }
 
         const [userRows] = await dbHelper.query('SELECT * FROM Users WHERE email = ?', [email]);  //Return users in Users matching the email address
@@ -45,20 +46,20 @@ expRouter.post('/login', async(req, res) => {
             return res.status(404).json({message: 'User not found.'});      //Error handling if user not in Users table
         }
 
-        const currentUser = userRows[0];                            //Extract user DB record for reference
+        const user = userRows[0];                            //Extract user DB record for reference
 
-        if(!(await bcrypt.compare(pwd, currentUser.pwd))){          //Compare plain (provided) and hashed (stored) passwords
+        if(!(await bcryptlib.compare(password, user.pwd))){          //Compare plain (provided) and hashed (stored) passwords
             return res.status(401).json({message: 'Invalid credentials.'});     //Error message if passwords don't match
         }
 
-        req.session.currentUser = {                                 //Session variable storing user information for login persistence
-            userID: currentUser.users_id,
-            userName: currentUser.users_name,
-            userRole: currentUser.user_role,
-            email: currentUser.email
+        req.session.user = {                                 //Session variable storing user information for login persistence
+            users_id: user.users_id,
+            name: user.users_name,
+            role: user.user_role,
+            email: user.email
         };
 
-        res.json({message: 'Successful login.', user: req.session.currentUser});    //JSON success message with user details
+        res.json({message: 'Successful login.', user: req.session.user});    //JSON success message with user details
     } catch (error) {                                               //Error display if login error occurs
         console.error('Login error:', error);
         res.status(500).json({ message: 'Login error.'});

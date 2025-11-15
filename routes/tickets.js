@@ -29,12 +29,23 @@ expRouter.get('/', async (req, res) => {
         let filterStmt = `SELECT t.ticket_id, t.event_id, t.seat_id, t.ticket_price, t.ticket_status, s.row_num, s.seat_number
         FROM Ticket t JOIN Seat s ON t.seat_id = s.seat_id`;    //Returns ticket and row information
 
-        if (filterInfo.conditions){                             //Adds any filter conditions to the SQL statement
+        if (filterInfo.length){                             //Adds any filter conditions to the SQL statement
             filterStmt += ' WHERE ' + filterInfo.join(' AND ');
         }
 
         filterStmt += ' ORDER BY t.ticket_id LIMIT ? OFFSET ?'; //Sets SQL statement to order by ticket and adds offset and limit
-        filterParams.push(parseInt(limit), parseInt(offset));
+        
+        let lim = parseInt(limit);                              //Convert limit and offset to numbers
+        let off = parseInt(offset);
+        
+        if (isNaN(lim) || lim <= 0) {                             //Defaults for limit and offset
+            lim = 20;
+        }
+        if (isNaN(off) || off < 0) {
+            off = 0;
+        }
+
+        filterParams.push(lim, off);                            //Push limit and offset to parameters
 
         const [ticketRows] = await connPool.query(filterStmt, filterParams);    //Execute SQL query with parameters
         res.json({ tickets: ticketRows});                       //Return results as JSON
@@ -46,7 +57,7 @@ expRouter.get('/', async (req, res) => {
 });
 
 //POST endpoint for creating ticket listing (only organizers)
-expRouter.post('/', validAuth, validRole(['Organizer']), async (req, rest) => {
+expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
     try{
         const { eID, sID, tPrice } = req.body;                      //Read POST request JSON body information
         
@@ -57,15 +68,15 @@ expRouter.post('/', validAuth, validRole(['Organizer']), async (req, rest) => {
 
         try {                                                           //INSERT a new ticket into the DB
             const [insertTicket] = await connPool.query(
-                `INSER INTO Ticket (event_id, seat_id, ticket_price, ticket_status)
-                VALUES (?, ?, ?, 'Available)`,
+                `INSERT INTO Ticket (event_id, seat_id, ticket_price, ticket_status)
+                VALUES (?, ?, ?, 'Available')`,
                 [eID, sID, tPrice]
             );
 
-            return res.status(201).json({message: 'Ticket successfully created.', ticketID: result.insertID});  //Success message, returning ticketID
+            return res.status(201).json({message: 'Ticket successfully created.', ticketID: insertTicket.insertId});  //Success message, returning ticketID
         } catch (error) {                                               //Duplicate ticket error handling
-            if (error && err.code === 'ER_DUP_ENTRY') {
-                return res.status(409).json({error:'Seat already lsited for event.'});
+            if (error && error.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({error:'Seat already listed for event.'});
             }
             throw error;                                                //If error isn't a duplicate ticket error, throw an error
         }
@@ -125,7 +136,7 @@ expRouter.delete('/:id', validAuth, validRole(['Organizer']), async (req, res) =
         await connPool.query('DELETE FROM Ticket WHERE ticket_id = ?', [tID]);
         res.json({message: 'Ticket deleted successfully.'});
     } catch (error) {                                                   //Error handling and logging
-        console.error('DELETE /api/tickets/:id error', errro);
+        console.error('DELETE /api/tickets/:id error', error);
         res.status(500).json({error: 'Server error'});
     }
 });

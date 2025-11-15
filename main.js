@@ -12,7 +12,6 @@ const dotenv = require('dotenv');                      //Loads .env file (enviro
 dotenv.config();                                     //Load environment variables
 
 const dbHelper = require('./dbHelper');                 //Import DB connection from pool in dbHelper.js, letting routes query the DB
-const authRoutes = require('./routes/auth.js');          //Import authentication routes from routes/auth.js (endpoints)
 
 const mainApp = expressLib();                              //Initialize Express app, all routes/middleware/etc. connected to it
 
@@ -32,7 +31,7 @@ mainApp.use(sessionPkg({
     secret: process.env.SESSIONSECRET,                  //Encrypts session ID, loaded from .env
     store: sessionStore,                                //Saves sessions in MySQL
     resave: false,                                      //If the session isn't modified, it isn't stored
-    saveUnitialized: false,                             //Unauthenticated users don't have sessions created
+    saveUninitialized: false,                           //Unauthenticated users don't have sessions created
     cookie: {                                           //Cookie settings
         maxAge: 86400,                                  //Valid for one day
         secure: false,                                  //True only when using HTTPS
@@ -45,7 +44,7 @@ dbHelper.query('SELECT 1')
     .then(() => console.log('Successful connection.'))
     .catch(err => console.error('Connection failed.', err));
 
-mainApp.use('/api/auth', auth);                   //Mount all routes under /api/auth
+mainApp.use('/api/auth', require('./routes/auth.js'));                   //Mount all routes under /api/auth
 mainApp.use('/api/events', require('./routes/events.js'));
 mainApp.use('/api/tickets', require('./routes/tickets.js'));
 mainApp.use('/api/orders', require('./routes/orders.js'));

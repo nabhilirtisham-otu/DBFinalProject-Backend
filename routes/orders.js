@@ -107,7 +107,7 @@ expRouter.get('/:id', validAuth, async (req, res) => {
 
 //GET endpoint for listing all the orders for the current logged-in user
 expRouter.get('/', validAuth, async (req, res) => {
-    const uID = req.session.user.users_id || req.session.user.id;       //Get the user ID from the current session object
+    const uID = req.session.user.id;       //Get the user ID from the current session object
     try {
         const orderRows = await pool.query('SELECT * FROM Orders WHERE users_id = ? ORDER BY order_date DESC', [uID]);      //Return all orders belonging to the current suer
         res.json({orders: orderRows});                  //Send orders back to the client
