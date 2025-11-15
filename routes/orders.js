@@ -75,3 +75,32 @@ expRouter.post('/', validAuth, async (req, res) => {
         }
     }
 });
+
+//GET endpoint for retrieving order details (authenticated users only)
+expRouter.get('/:id', validAuth, async (req, res) => {
+    const oID = parseInt(req.params.id);                                //Retrieves and validates order id
+    if (!oID){
+        return res.status(400).json({error: 'Order id invalid.'});
+    }
+    const uID = req.session.user.users_id || req.session.user.id;       //Get the user ID from the current session object
+    
+    try{
+        const [userOrders] = await pool.query('SELECT * FROM Orders WHERE order_id = ? AND users_id = ?', [oID, uID]);      //Retrieve order details belonging to the current user
+        if (userOrders.length === 0){                                   //Error if no order details can be retrieved
+            return res.status(404).json({error:'No order information found.'});
+        }
+        const userOrder = userOrders[0];                                //Extract first order object
+
+        const userTickets = await pool.query(                           //Retrieve tickets and seat information belonging to the current order
+            `SELECT t.*, s.row_num, s.seat_number, e.title AS event_title
+            FROM Ticket t JOIN Seat s ON t.seat_id = s.seat_id
+            JOIN Event_ e ON t.event_id = e.event_id
+            WHERE t.order_id = ?`, [oID]
+        );
+        const [paymentInfo] = await pool.query('SELECT * FROM Payment WHERE order_id = ?', [oID]);  //Retrieve payment information for the current order
+        res.json({userOrder, userTickets, paymentInfo});                //Return order, tickets, and payment information
+    } catch (error) {
+        console.error('GET /api/orders/:id error', error);
+        res.status(500).json({error:'Server error'});
+    }
+});
