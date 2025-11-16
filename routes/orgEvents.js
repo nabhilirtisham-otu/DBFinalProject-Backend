@@ -1,3 +1,7 @@
+/*
+Organizer CRUD route for events
+*/
+
 //Imports Express framework, DB connection, and authorization functions
 const expressLib = require('express');
 const connPool = require('../dbHelper.js');
@@ -92,3 +96,23 @@ expRouter.put("/:id", validAuth, validRole(["Organizer"]), async (req, res) => {
         res.status(500).json({error:"Server error"});
     }
 });
+
+//DELETE endpoint to delete an event
+expRouter.delete("/:id", validAuth, validRole(["Organizer"]), async (req, res) => {
+    const eID = req.params.id;
+    const oID = req.session.user.id;
+
+    try{
+        await connPool.query(                                                   //Execute DELETE statement if the event belongs to the organizer
+            `DELETE FROM Event_
+            WHERE event_id = ? AND organizer_id = ?,`
+            [eID, oID]
+        );
+        res.json({message:"Event deleted successfully."});                      //Success message
+    } catch (error) {
+        console.error("DELETE /organizer/events/:id", error);                   //Error handling and logging
+        res.status(500).json({error:"Server error"});
+    }
+});
+
+module.exports = expRouter;                                                     //Export router so other files can use it

@@ -49,6 +49,7 @@ mainApp.use('/api/events', require('./routes/events.js'));
 mainApp.use('/api/tickets', require('./routes/tickets.js'));
 mainApp.use('/api/orders', require('./routes/orders.js'));
 mainApp.use('/api/views', require('./routes/views.js'));
+mainApp.use('/api/organizer/events', require('./routes/orgEvents.js'));
 
 //Basic route for root URL, checks if server running
 mainApp.get('/', (req, res) => {
