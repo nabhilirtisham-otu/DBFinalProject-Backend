@@ -3,6 +3,7 @@ const expressLib = require('express');
 const connPool = require('../dbHelper.js');
 const { validAuth, validRole } = require('../middleware/auth.js');
 const e = require('express');
+const { param } = require('./auth.js');
 
 const expRouter = expressLib.Router();                                  //Router instance
 
@@ -24,6 +25,7 @@ expRouter.get("/", validAuth, validRole(["Organizer"]), async (req, res) => {
     }
 });
 
+//POST endpoint to create events
 expRouter.post("/", validAuth. validRole(["Organizer"]), async (req, res) => {
     try{
         const oID = req.session.user.id;                                    //Read organizer (user) id from current session
@@ -38,6 +40,55 @@ expRouter.post("/", validAuth. validRole(["Organizer"]), async (req, res) => {
         res.status(201).json({message:"Event created successfully.", eventId: insert.insertId});    //Success message and new eventId
     } catch (error){                                                        //Error handling and logging
         console.error("POST /organizer/events", error);
+        res.status(500).json({error:"Server error"});
+    }
+});
+
+//GET endpoint to retrieve single events
+expRouter.get("/:id", validAuth, validRole(["Organizer"]), async (req, res) => {
+    try {
+        const eID = req.params.id;                                          //Get current organizer and event IDs
+        const oID = req.session.user.id;
+
+        const [eventRows] = await pool.query(                               //Organizers can only retrieve their own events
+            `SELECT * FROM Event_ WHERE event_id = ? AND organizer_id = ?`,
+            [eID, oID]
+        );
+
+        if (eventRows.length === 0){                                        //Error message if event not found
+            return res.status(404).json({error:"Event information not found."});
+        }
+        res.json({evemt:eventRows[0]});                                     //Return event object
+    } catch (error){                                                        //Error handling and logging
+        console.error("GET /organizer/events/:id error", error);
+        res.status(500).json({error:"Server error"});
+    }
+});
+
+//PUT endpoint to update an event
+expRouter.put("/:id", validAuth, validRole(["Organizer"]), async (req, res) => {
+    try{
+        const eID = req.params.id;                                          //Get event and organizer IDs
+        const oID = req.session.user.id;
+
+        const updateFields = [];                                            //Fields and values used to define dynamic SQL statement
+        const updateParams = [];
+
+        for (const [key, value] of Object.entries(req.body)) {              //Loop through keys/values in request body, pushes column and parameter values
+            updateFields.push(`${key} = ?`);
+            updateParams.push(value);
+        }
+
+        updateParams.push(eID, oID);                                        //Add event and organizer IDs to parameters
+
+        await connPool.query(                                               //Execute UPDATE statement
+            `UPDATE Event_ SET ${updateFields.join(", ")}
+            WHERE event_id = ? AND organizer_id = ?`,
+            updateParams
+        );
+        res.json({message: "Event updated successfully."});                 //Success message
+    } catch (error){                                                        //Error handling and logging
+        console.error("PUT /organizer/events/:id", error);
         res.status(500).json({error:"Server error"});
     }
 });
