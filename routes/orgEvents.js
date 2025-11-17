@@ -6,8 +6,6 @@ Organizer CRUD route for events
 const expressLib = require('express');
 const connPool = require('../dbHelper.js');
 const { validAuth, validRole } = require('../middleware/auth.js');
-const e = require('express');
-const { param } = require('./auth.js');
 
 const expRouter = expressLib.Router();                                  //Router instance
 
@@ -30,7 +28,7 @@ expRouter.get("/", validAuth, validRole(["Organizer"]), async (req, res) => {
 });
 
 //POST endpoint to create events
-expRouter.post("/", validAuth. validRole(["Organizer"]), async (req, res) => {
+expRouter.post("/", validAuth, validRole(["Organizer"]), async (req, res) => {
     try{
         const oID = req.session.user.id;                                    //Read organizer (user) id from current session
         const {vID, title, eDesc, stTime, endTime, stPrice, eStatus} = req.body;    //Expected fields in the request body
