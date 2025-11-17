@@ -49,3 +49,14 @@ expRouter.get("/fetch/:city", async (req, res) => {
         res.status(500).json({error: "Server error fetching weather."});
     }
 });
+
+//List all weather logs
+expRouter.get("/logs", async (req, res) => {
+    try {
+        const weatherRows = await connPool.query(`SELECT * FROM WeatherLog ORDER BY time_logged DESC LIMIT 100`);       //Retrieve saved weather logs, sorted by newest to oldest (time_logged)
+        res.json({ logs: weatherRows});                     //Return logs as JSON
+    } catch (error) {                                       //Error handling and logging
+        console.error("GET /api/weather/logs error", error);
+        res.status(500).json({error: "Server error"});
+    }
+});
