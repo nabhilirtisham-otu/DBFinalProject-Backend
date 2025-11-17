@@ -82,6 +82,17 @@ expRouter.post("/login", async (req, res) => {
     }
 });
 
+// Check current session
+expRouter.get("/session", (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({loggedIn: false});
+    }
+    return res.json({
+        loggedIn: true,
+        user: req.session.user
+    });
+});
+
 // Logout user, refers to functions in middleware/auth.js
 expRouter.post("/logout", validAuth, destroySess);
 

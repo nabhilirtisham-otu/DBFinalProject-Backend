@@ -16,7 +16,13 @@ const dbHelper = require('./dbHelper');                 //Import DB connection f
 const mainApp = expressLib();                              //Initialize Express app, all routes/middleware/etc. connected to it
 
 mainApp.use(cors({                                      //Connect to frontend using CORS
-    origin: ["http://127.0.0.1:5501", "http://localhost:5501"],                    //Frontend domain
+    origin: [
+        "http://127.0.0.1:5501",
+        "http://localhost:5501",
+        "http://127.0.0.1",
+        "http://localhost",
+        "http://[::1]:5501"
+    ],                                                  //Frontend domain
     credentials: true                                   //Session cookies can be sent with requests
 }));
 
@@ -32,10 +38,11 @@ mainApp.use(sessionPkg({
     store: sessionStore,                                //Saves sessions in MySQL
     resave: false,                                      //If the session isn't modified, it isn't stored
     saveUninitialized: false,                           //Unauthenticated users don't have sessions created
-    cookie: {                                           //Cookie settings
-        maxAge: 86400000,                               //Valid for one day
-        secure: false,                                  //True only when using HTTPS
-        httpOnly: true                                  //Client-side JS can't access cookies
+    cookie: {
+        maxAge: 86400000,      // 1 day
+        secure: false,         // ok for http on localhost/127.0.0.1
+        httpOnly: true,        // JS cannot read cookie
+        sameSite: "lax"        // explicit, works for same-site fetches
     }
 }));
 
