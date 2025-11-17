@@ -15,7 +15,7 @@ if (!openWeatherKey){                                   //Warning if API key env
 
 //Fetch weather information for a city and save to the DB
 expRouter.get("/fetch/:city", async (req, res) => {
-    const weatherCity = req.params.city;                       //Extract city name from URL path parameter
+    const weatherCity = req.params.city;                       //Extract city name from URL parameter
     if (!weatherCity){
         return res.status(400).json({error: "Please provide city."});           //Error if city isn't provided
     }
@@ -60,3 +60,20 @@ expRouter.get("/logs", async (req, res) => {
         res.status(500).json({error: "Server error"});
     }
 });
+
+//Filter weather logs by city
+expRouter.get("/city/:city", async (req, res) => {
+    const weatherCity = req.params.city;                //Extract city from URL parameter
+    try {                                               //Query weather logs for the provided city
+        const [weatherRows] = await connPool.query(
+            `SELECT * FROM WeatherLog WHERE LOWER(city) = LOWER(?) ORDER BY time_logged DESC LIMIT 500`,
+            [weatherCity]
+        );
+        res.json({logs: weatherRows});                  //Return filtered list as JSON
+    } catch (error) {                                   //Error handling and logging
+        console.error("GET /api/weather/city/:city error", error);
+        res.status(500).json({error: "Server error"});
+    }
+});
+
+module.exports = expRouter;                             //Export router to let other files use it
