@@ -33,7 +33,7 @@ mainApp.use(sessionPkg({
     resave: false,                                      //If the session isn't modified, it isn't stored
     saveUninitialized: false,                           //Unauthenticated users don't have sessions created
     cookie: {                                           //Cookie settings
-        maxAge: 86400,                                  //Valid for one day
+        maxAge: 86400000,                               //Valid for one day
         secure: false,                                  //True only when using HTTPS
         httpOnly: true                                  //Client-side JS can't access cookies
     }
@@ -44,15 +44,15 @@ dbHelper.query('SELECT 1')
     .then(() => console.log('Successful connection.'))
     .catch(err => console.error('Connection failed.', err));
 
-mainApp.use('/api/auth', require('./routes/auth.js'));                   //Mount all routes under /api
-mainApp.use('/api/events', require('./routes/events.js'));
-mainApp.use('/api/tickets', require('./routes/tickets.js'));
-mainApp.use('/api/orders', require('./routes/orders.js'));
-mainApp.use('/api/views', require('./routes/views.js'));
-mainApp.use('/api/organizer/events', require('./routes/orgEvents.js'));
-mainApp.use('/api/weather', require('./routes/weather.js'));
-mainApp.use('/api/export', require('./routes/export.js'));
-mainApp.use('/api/xml', require('./routes/xml.js'));
+mainApp.use("/api/auth", require("./routes/auth.js"));
+mainApp.use("/api/events", require("./routes/events.js"));
+mainApp.use("/api/tickets", require("./routes/tickets.js"));
+mainApp.use("/api/orders", require("./routes/orders.js"));
+mainApp.use("/api/views", require("./routes/views.js"));
+mainApp.use("/api/organizer/events", require("./routes/orgEvents.js"));
+mainApp.use("/api/weather", require("./routes/weather.js"));
+mainApp.use("/api/export", require("./routes/export.js"));
+mainApp.use("/api/xml", require("./routes/xml.js"));
 
 //Basic route for root URL, checks if server running
 mainApp.get('/', (req, res) => {

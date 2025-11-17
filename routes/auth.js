@@ -1,73 +1,88 @@
+// routes/auth.js
 /*
 Handles registration, login, and logout.
 */
 
-const expresslib = require('express');                              //Import Express.js library
-const bcryptlib =  require('bcrypt');                               //Import bcrypt (password hashing) library
-const dbHelper = require('../dbHelper.js');                                        //Import dbHelper.js (DB connection pool file)
-const { validAuth, destroySess } = require('../middleware/auth.js');        //Import middleware functions from auth.js (middleware folder)
-const expRouter = expresslib.Router()                                  //Create Express router instance
+const expresslib = require("express");
+const bcryptlib = require("bcrypt");
+const dbHelper = require("../dbHelper.js");
+const { validAuth, destroySess } = require("../middleware/auth.js");
+const expRouter = expresslib.Router();
 
-//User registration POST route
-expRouter.post('/register', async(req, res) => {                    //Express.js allows async for asynchronous DB operations
+// User registration POST route
+expRouter.post("/register", async (req, res) => {
     try {
-        const {userName, email, pwd, userRole} = req.body;          //User registration information extracted from frontend form fields
-        if (!userName || !email || !pwd || !userRole){
-            return res.status(400).json({message: 'Please fill out all fields.'});      //Error handling to ensure all fields are filled
+        const { userName, email, pwd, userRole } = req.body;
+
+        if (!userName || !email || !pwd || !userRole) {
+            return res
+                .status(400)
+                .json({ message: "Please fill out all fields." });
         }
 
-        const hashPwd = await bcryptlib.hash(pwd, 10);              //Hashes user's password with 10 rounds of encryption
+        const hashPwd = await bcryptlib.hash(pwd, 10);
 
-        const [addUser] = await dbHelper.query(                           //Insert the new user into the Users table of the DB
-            `INSERT INTO Users (users_name, email, pwd, user_role)
-            VALUES (?, ?, ?, ?)`,
+        const [addUser] = await dbHelper.query(
+            `
+            INSERT INTO Users (users_name, email, pwd, user_role)
+            VALUES (?, ?, ?, ?)
+        `,
             [userName, email, hashPwd, userRole]
         );
 
-        res.status(201).json({message: 'Sucessful registration.', userID: addUser.insertId});   //Successfull HTTP 201 response and the new user ID
-        
-    } catch (error) {                                               //Error display if registration error occurs
-        console.error('Registration error:', error);
-        res.status(500).json({message: 'Registration error.'});
+        res.status(201).json({
+            message: "Successful registration.",
+            userID: addUser.insertId,
+        });
+    } catch (error) {
+        console.error("Registration error:", error);
+        res.status(500).json({ message: "Registration error." });
     }
 });
 
-//User login POST route
-expRouter.post('/login', async(req, res) => {
-    try{
-        const{email, password} = req.body;                               //User login information extracted from frontend form fields
+// User login POST route
+expRouter.post("/login", async (req, res) => {
+    try {
+        const { email, password } = req.body;
 
-        if (!email || !password){                                        //Error handling ensures nonempty inputs
-            return res.status(400).json({ message: 'Please fill in email and password.'});
+        if (!email || !password) {
+            return res
+                .status(400)
+                .json({ message: "Please fill in email and password." });
         }
 
-        const [userRows] = await dbHelper.query('SELECT * FROM Users WHERE email = ?', [email]);  //Return users in Users matching the email address
-        if (userRows.length === 0){
-            return res.status(404).json({message: 'User not found.'});      //Error handling if user not in Users table
+        const [userRows] = await dbHelper.query(
+            "SELECT * FROM Users WHERE email = ?",
+            [email]
+        );
+        if (userRows.length === 0) {
+            return res.status(404).json({ message: "User not found." });
         }
 
-        const user = userRows[0];                            //Extract user DB record for reference
+        const user = userRows[0];
 
-        if(!(await bcryptlib.compare(password, user.pwd))){          //Compare plain (provided) and hashed (stored) passwords
-            return res.status(401).json({message: 'Invalid credentials.'});     //Error message if passwords don't match
+        const ok = await bcryptlib.compare(password, user.pwd);
+        if (!ok) {
+            return res.status(401).json({ message: "Invalid credentials." });
         }
 
-        req.session.user = {                                 //Session variable storing user information for login persistence
+        // Store session info. Use both users_id and id to be safe for older code.
+        req.session.user = {
             users_id: user.users_id,
+            id: user.users_id,
             name: user.users_name,
             role: user.user_role,
-            email: user.email
+            email: user.email,
         };
 
-        res.json({message: 'Successful login.', user: req.session.user});    //JSON success message with user details
-    } catch (error) {                                               //Error display if login error occurs
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Login error.'});
+        res.json({ message: "Successful login.", user: req.session.user });
+    } catch (error) {
+        console.error("Login error:", error);
+        res.status(500).json({ message: "Login error." });
     }
 });
 
-//Logout user, refers to functions in middleware/auth.js
-expRouter.post('/logout', validAuth, destroySess);
+// Logout user, refers to functions in middleware/auth.js
+expRouter.post("/logout", validAuth, destroySess);
 
-
-module.exports = expRouter;                                         //Exports router to let other files use it
+module.exports = expRouter;

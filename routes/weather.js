@@ -42,7 +42,7 @@ expRouter.get("/fetch/:city", async (req, res) => {
             [weatherCity, temperature, description]
         );
 
-        const weatherRows = await connPool.query(`SELECT * FROM WeatherLog WHERE id = ?`, [weatherInfo.insertId]);          //Fetch inserted record to return to frontend
+        const [weatherRows] = await connPool.query(`SELECT * FROM WeatherLog WHERE id = ?`, [weatherInfo.insertId]);          //Fetch inserted record to return to frontend
         res.json({saved: weatherRows[0]});                          //Return saved log as JSON to client
     } catch (error) {                                               //Error handling and logging
         console.error("GET /api/weather/fetch/:city error", error);
@@ -53,7 +53,7 @@ expRouter.get("/fetch/:city", async (req, res) => {
 //List all weather logs
 expRouter.get("/logs", async (req, res) => {
     try {
-        const weatherRows = await connPool.query(`SELECT * FROM WeatherLog ORDER BY time_logged DESC LIMIT 100`);       //Retrieve saved weather logs, sorted by newest to oldest (time_logged)
+        const [weatherRows] = await connPool.query(`SELECT * FROM WeatherLog ORDER BY time_logged DESC LIMIT 100`);       //Retrieve saved weather logs, sorted by newest to oldest (time_logged)
         res.json({ logs: weatherRows});                     //Return logs as JSON
     } catch (error) {                                       //Error handling and logging
         console.error("GET /api/weather/logs error", error);

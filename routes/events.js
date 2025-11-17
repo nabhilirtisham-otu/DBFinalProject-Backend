@@ -3,10 +3,8 @@ Defines routes for listing, creating, updating, and deleting tickets
 */
 
 const expressLib = require('express');                                  //Import express framework
-const dbHelper = require('../dbHelper.js');                             //Import DB connection
 const { validAuth, validRole } = require('../middleware/auth.js');      //Import middleware authentication functions
 const { validNum, validString, validDate} = require('../utils/validatorFunctions.js'); //Import validator functions from utils
-const { param } = require('./auth.js');
 const connPool = require('../dbHelper.js');
 
 const expRouter = expressLib.Router();                                  //Router instance
