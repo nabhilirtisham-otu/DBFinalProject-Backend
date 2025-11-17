@@ -16,7 +16,7 @@ const dbHelper = require('./dbHelper');                 //Import DB connection f
 const mainApp = expressLib();                              //Initialize Express app, all routes/middleware/etc. connected to it
 
 mainApp.use(cors({                                      //Connect to frontend using CORS
-    origin: 'http://localhost:3000',                    //Frontend domain
+    origin: ["http://127.0.0.1:5501", "http://localhost:5501"],                    //Frontend domain
     credentials: true                                   //Session cookies can be sent with requests
 }));
 

@@ -60,7 +60,7 @@ expRouter.get("/events.pdf", async (req, res) => {
         res.setHeader("Content-Type", "application/pdf");          //Set expected response type to CSV
         res.setHeader("Content-Disposition", `attachment; filename="events.pdf"`);          //Instruct browser to download file events.csv
 
-        const pdfDoc = new PDFDocument({margin: 40, size: "A4"});           //Create PDF doc with specified page formatting
+        const pdfDoc = new pdfkitLib({margin: 40, size: "A4"});           //Create PDF doc with specified page formatting
         pdfDoc.pipe(res);                       //Stream PDF output to HTTP response
 
         pdfDoc.fontSize(18).text("Event List", {align: "center"});          //Draw header

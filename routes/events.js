@@ -75,6 +75,23 @@ expRouter.get('/', async(req, res) => {
     }
 });
 
+// GET /api/events/cities - return distinct cities
+expRouter.get('/cities', async (req, res) => {
+    try {
+        const [rows] = await connPool.query(`
+            SELECT DISTINCT city
+            FROM Venue
+            WHERE city IS NOT NULL AND city <> ''
+            ORDER BY city ASC;
+        `);
+
+        res.json({ cities: rows.map(r => r.city) });
+    } catch (err) {
+        console.error("Error fetching cities:", err);
+        res.status(500).json({ error: "Server error" });
+    }
+});
+
 //Another GET endpoint for a single event at /api/events
 expRouter.get('/:id', async (req, res) => {
     const eventID = parseInt(req.params.id);                            //Reads and converts the ID from the URL into an int
