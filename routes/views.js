@@ -10,7 +10,7 @@ const expRouter = expressLib.Router();                          //Creates Expres
 
 async function runView(res, view){                              //Display the view
     try {
-        const [viewInfo] = await connPool.query(`SELECT * fFROM ${view}`);      //Query all the information from the designated view
+        const [viewInfo] = await connPool.query(`SELECT * FROM ${view}`);      //Query all the information from the designated view
         res.json({ viewInfo});                                  //Send view info back to client as JSON
     } catch (error) {
         console.error(`Error in view ${view}`, error);          //Error handling and logging

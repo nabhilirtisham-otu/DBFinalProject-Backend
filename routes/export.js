@@ -1,5 +1,5 @@
 /*
-
+CSV and PDF export routes
 */
 
 //Imports Express framework, DB connection, and authorization functions
@@ -70,10 +70,10 @@ expRouter.get("/events.pdf", async (req, res) => {
 
         const tableHead = pdfDoc.y;             //Store Y position where table start
         pdfDoc.fontSize(10).text("ID", 40, tableHead);          //Write column headers at fixed X-positions
-        pdfDoct.text("Title", 80, tableHead);
-        pdfDoct.text("Venue (City)", 240, tableHead);
-        pdfDoct.text("Start", 340, tableHead);
-        pdfDoct.text("Price", 420, tableHead);
+        pdfDoc.text("Title", 80, tableHead);
+        pdfDoc.text("Venue (City)", 240, tableHead);
+        pdfDoc.text("Start", 340, tableHead);
+        pdfDoc.text("Price", 420, tableHead);
 
         pdfDoc.moveDown();                      //Move cursor down (create spacing)
 
