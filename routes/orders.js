@@ -11,7 +11,7 @@ const expRouter = expressLib.Router();
 
 // POST endpoint to create order + payment, and mark tickets as sold in a transaction
 expRouter.post("/", validAuth, async (req, res) => {
-    const uID = req.session.user.users_id || req.session.user.id;
+    const uID = req.session.user.id;
     if (!uID) {
         return res.status(401).json({ error: "Not authenticated." });
     }
@@ -145,7 +145,12 @@ expRouter.get("/:id", validAuth, async (req, res) => {
             [oID]
         );
 
-        res.json({ userOrder, userTickets, paymentInfo });
+        res.json({
+            order: userOrder,
+            tickets: userTickets,
+            payments: paymentInfo
+        });
+
     } catch (error) {
         console.error("GET /api/orders/:id error", error);
         res.status(500).json({ error: "Server error" });

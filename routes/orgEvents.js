@@ -9,6 +9,27 @@ const { validAuth, validRole } = require("../middleware/auth.js");
 
 const expRouter = expressLib.Router();
 
+// GET all venues for event creation
+expRouter.get(
+    "/venues",
+    validAuth,
+    validRole(["Organizer"]),
+    async (req, res) => {
+        try {
+            const [rows] = await connPool.query(`
+                SELECT venue_id, venue_name, city 
+                FROM Venue
+                ORDER BY venue_name;
+            `);
+
+            res.json({ venues: rows });
+        } catch (error) {
+            console.error("GET /organizer/events/venues error:", error);
+            res.status(500).json({ error: "Server error loading venues." });
+        }
+    }
+);
+
 // GET endpoint to retrieve events for a logged-in organizer
 expRouter.get(
     "/",
@@ -43,15 +64,15 @@ expRouter.post(
     validRole(["Organizer"]),
     async (req, res) => {
         try {
-            const oID = req.session.user.users_id || req.session.user.id;
+            const oID = req.session.user.id;
             const {
-                vID,
+                venue_id,
                 title,
-                eDesc,
-                stTime,
-                endTime,
-                stPrice,
-                eStatus,
+                event_description,
+                start_time,
+                end_time,
+                standard_price,
+                event_status,
             } = req.body;
 
             const [eventInsert] = await connPool.query(
@@ -62,7 +83,7 @@ expRouter.post(
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `,
-                [oID, vID, title, eDesc, stTime, endTime, stPrice, eStatus]
+                [oID, venue_id, title, event_description, start_time, end_time, standard_price, event_status]
             );
 
             res.status(201).json({

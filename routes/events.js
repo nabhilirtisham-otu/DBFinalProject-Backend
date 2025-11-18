@@ -1,5 +1,5 @@
 /*
-Defines routes for listing, creating, updating, and deleting tickets
+Defines routes for listing, creating, updating, and deleting events
 */
 
 const expressLib = require('express');                                  //Import express framework
@@ -8,6 +8,18 @@ const { validNum, validString, validDate} = require('../utils/validatorFunctions
 const connPool = require('../dbHelper.js');
 
 const expRouter = expressLib.Router();                                  //Router instance
+
+// GET all venues
+expRouter.get("/venues/all", async (req, res) => {
+    console.log("HIT /api/events/venues/all");
+    try {
+        const [rows] = await connPool.query("SELECT venue_id, venue_name FROM Venue");
+        res.json({ venues: rows });
+    } catch (err) {
+        console.error("Error fetching venues:", err);
+        res.status(500).json({ message: "Server error loading venues." });
+    }
+});
 
 //GET endpoint to list/search events at /api/events
 expRouter.get('/', async(req, res) => {
@@ -90,82 +102,64 @@ expRouter.get('/cities', async (req, res) => {
     }
 });
 
-//Another GET endpoint for a single event at /api/events
-expRouter.get('/:id', async (req, res) => {
-    const eventID = parseInt(req.params.id);                            //Reads and converts the ID from the URL into an int
-    if (!eventID){                                                      //Error handling
-        return res.status(400).json({error: 'Invalid event ID'});
-    }
-
-    try{
-        const [eventRows] = await connPool.query(                       //Query the DB for the event with the specified ID, joining the venue info
-            `SELECT  e.*, v.venue_name, v.city, v.loc_address
-            FROM Event_ e JOIN Venue v ON e.venue_id = v.venue_id
-            WHERE e.event_id=?`, [eventID]                              //'?' ensures safe insertion
-        );
-
-        if (eventRows.length === 0){                                    //Error handling
-            return res.status(404).json({error:'Event with specified ID not found'});
-        }
-
-        const event = eventRows[0];                                     //Select the first event record
-        const [ticketCounts] = await connPool.query(                        //Counts how many tickets in each status category (available, reserved, etc.)
-            `SELECT ticket_status, COUNT(*) AS tcount
-            FROM Ticket WHERE event_id = ?
-            GROUP BY ticket_status`, [eventID]
-        );
-        const [eventTickets] = await connPool.query(                    //Return a list of tickets for the specified event, along with seat details
-            `SELECT t.ticket_id, t.seat_id, t.ticket_price, t.ticket_status,
-                s.section_id, s.seat_number, s.row_num
-            FROM Ticket t JOIN Seat s ON t.seat_id = s.seat_id
-            WHERE t.event_id = ? LIMIT 300`, [eventID]
-        );
-        res.json({ event, ticketCounts, eventTickets });                //Send a JSON response with event, ticket count, and ticket list details
-    } catch (error){                                                    //Handles and logs errors
-        console.error('GET /api/events/:id error', error);
-        res.status(500).json({error:'Server error'});
-    }
-});
-
 //POST endpoint for creating new events (must be logged in and must be 'Organizer')
 expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
-    try{
-        const orgID = req.session.user.id;     //Get the organizer uID from the current session object
-        const { vID, title, eventDesc, startTime, endTime,
-            stPrice, categories = [], performers = []} = req.body;    //Get event details from the body of the POST request
-    
-        //Error handling for event details
-        if (!validString(title) || !vID || !validDate(startTime)){
-            return res.status(400).json({error: 'Missing/invalid fields.'});
-        }
-        if (stPrice !== undefined && !validNum(Number(stPrice))){
-            return res.status(400).json({error: 'Invalid price.'});
+    try {
+        const orgID = req.session.user.id;
+
+        // FIXED: match frontend field names
+        const vID = req.body.venue_id;
+        const title = req.body.title;
+        const eventDesc = req.body.event_description;
+        const startTime = req.body.start_time;
+        const endTime = req.body.end_time;
+        const stPrice = req.body.standard_price;
+        const eventStatus = req.body.event_status || "Scheduled";
+
+        const categories = req.body.categories || [];
+        const performers = req.body.performers || [];
+
+        // Validation
+        if (!validString(title) || !vID || !validDate(startTime)) {
+            return res.status(400).json({ error: 'Missing/invalid fields.' });
         }
 
-        const [newEvent] = await connPool.query(                                //Insert a new row into Event_ with all the information provided above
-            `INSERT INTO Event_ (organizer_id, venue_id, title, event_description, start_time, end_time,
-                standard_price, event_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 'Scheduled')`,
-            [orgID, vID, title, eventDesc || null, startTime, endTime || null, stPrice || 0.0]    //null handles missing (optional) information
+        if (stPrice !== undefined && !validNum(Number(stPrice))) {
+            return res.status(400).json({ error: 'Invalid price.' });
+        }
+
+        // Insert event
+        const [newEvent] = await connPool.query(
+            `INSERT INTO Event_ 
+                (organizer_id, venue_id, title, event_description, start_time, end_time,
+                 standard_price, event_status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [orgID, vID, title, eventDesc || null, startTime, endTime || null, stPrice || 0.0, eventStatus]
         );
 
-        const eID = newEvent.insertId;                                  //Return the auto-incremented ID of the new event
+        const eID = newEvent.insertId;
 
-        if (Array.isArray(categories) && categories.length) {           //For any category IDs provided, insert them into Event_Categories with the associated event
+        if (categories.length) {
             const categoryPairs = categories.map(cID => [eID, cID]);
-            await connPool.query(`INSERT INTO Event_Category (event_id, category_id)
-                VALUES ?`, [categoryPairs]);
-        }
-        if (Array.isArray(performers) && performers.length) {           //Same as above but for the performers array
-            const performerPairs = performers.map(pID => [eID, pID]);
-            await connPool.query(`INSERT INTO Event_Performer (event_id, performer_id)
-                VALUES ?`, [performerPairs]);
+            await connPool.query(
+                `INSERT INTO Event_Category (event_id, category_id) VALUES ?`,
+                [categoryPairs]
+            );
         }
 
-        res.status(201).json({message: 'Event successfully created', eID});     //Returns success message and event ID
-    } catch (error){
+        if (performers.length) {
+            const performerPairs = performers.map(pID => [eID, pID]);
+            await connPool.query(
+                `INSERT INTO Event_Performer (event_id, performer_id) VALUES ?`,
+                [performerPairs]
+            );
+        }
+
+        res.status(201).json({ message: 'Event successfully created', eID });
+
+    } catch (error) {
         console.error('POST /api/events error', error);
-        res.status(500).json({error: 'Server error'});
+        res.status(500).json({ error: 'Server error' });
     }
 });
 
@@ -259,6 +253,43 @@ expRouter.delete('/:id', validAuth, validRole(['Organizer']), async (req, res) =
     } catch (error) {                                                       //Error handling and logging
         console.error('DELETE /api/events/:id error', error);
         res.status(500).json({ error:'Server error'});
+    }
+});
+
+//Another GET endpoint for a single event at /api/events
+expRouter.get('/:id', async (req, res) => {
+    const eventID = parseInt(req.params.id);                            //Reads and converts the ID from the URL into an int
+    if (!eventID){                                                      //Error handling
+        return res.status(400).json({error: 'Invalid event ID'});
+    }
+
+    try{
+        const [eventRows] = await connPool.query(                       //Query the DB for the event with the specified ID, joining the venue info
+            `SELECT  e.*, v.venue_name, v.city, v.loc_address
+            FROM Event_ e JOIN Venue v ON e.venue_id = v.venue_id
+            WHERE e.event_id=?`, [eventID]                              //'?' ensures safe insertion
+        );
+
+        if (eventRows.length === 0){                                    //Error handling
+            return res.status(404).json({error:'Event with specified ID not found'});
+        }
+
+        const event = eventRows[0];                                     //Select the first event record
+        const [ticketCounts] = await connPool.query(                        //Counts how many tickets in each status category (available, reserved, etc.)
+            `SELECT ticket_status, COUNT(*) AS tcount
+            FROM Ticket WHERE event_id = ?
+            GROUP BY ticket_status`, [eventID]
+        );
+        const [eventTickets] = await connPool.query(                    //Return a list of tickets for the specified event, along with seat details
+            `SELECT t.ticket_id, t.seat_id, t.ticket_price, t.ticket_status,
+                s.section_id, s.seat_number, s.row_num
+            FROM Ticket t JOIN Seat s ON t.seat_id = s.seat_id
+            WHERE t.event_id = ? LIMIT 300`, [eventID]
+        );
+        res.json({ event, ticketCounts, eventTickets });                //Send a JSON response with event, ticket count, and ticket list details
+    } catch (error){                                                    //Handles and logs errors
+        console.error('GET /api/events/:id error', error);
+        res.status(500).json({error:'Server error'});
     }
 });
 
