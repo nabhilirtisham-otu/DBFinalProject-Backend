@@ -11,7 +11,7 @@ const expRouter = expressLib.Router();
 
 // GET all venues for event creation
 expRouter.get(
-    "/venues",
+    "/venues/all",
     validAuth,
     validRole(["Organizer"]),
     async (req, res) => {

@@ -115,7 +115,7 @@ expRouter.get("/:id", validAuth, async (req, res) => {
         return res.status(400).json({ error: "Order id invalid." });
     }
 
-    const uID = req.session.user.users_id || req.session.user.id;
+    const uID = req.session.user.id;
 
     try {
         const [userOrders] = await connPool.query(
