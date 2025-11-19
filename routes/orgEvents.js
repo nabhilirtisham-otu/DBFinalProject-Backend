@@ -36,7 +36,7 @@ expRouter.get(
     validAuth,
     validRole(["Organizer"]),
     async (req, res) => {
-        const oID = req.session.user.users_id || req.session.user.id;
+        const oID = req.session.user.id;
         try {
             const [eventRows] = await connPool.query(
                 `
@@ -105,7 +105,7 @@ expRouter.get(
     async (req, res) => {
         try {
             const eID = req.params.id;
-            const oID = req.session.user.users_id || req.session.user.id;
+            const oID = req.session.user.id;
 
             const [eventRows] = await connPool.query(
                 `
@@ -136,7 +136,7 @@ expRouter.put(
     async (req, res) => {
         try {
             const eID = req.params.id;
-            const oID = req.session.user.users_id || req.session.user.id;
+            const oID = req.session.user.id;
 
             const updateFields = [];
             const updateParams = [];

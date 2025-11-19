@@ -10,6 +10,52 @@ const {validNum} = require('../utils/validatorFunctions.js');
 
 const expRouter = expressLib.Router();              //Instantiates new Express router
 
+//Ensures a venue has a default section and seats (A-Z rows, 10 seats each) so organizers can list tickets
+async function ensureVenueSeats(venueId) {
+    const [seatCountRows] = await connPool.query(
+        `
+        SELECT COUNT(*) AS seatCount
+        FROM Seat s
+        JOIN Section sec ON s.section_id = sec.section_id
+        WHERE sec.venue_id = ?
+        `,
+        [venueId]
+    );
+
+    if (seatCountRows[0].seatCount > 0) {
+        return;
+    }
+
+    let sectionId;
+    const [existingSection] = await connPool.query(
+        'SELECT section_id FROM Section WHERE venue_id = ? LIMIT 1',
+        [venueId]
+    );
+
+    if (existingSection.length) {
+        sectionId = existingSection[0].section_id;
+    } else {
+        const [newSection] = await connPool.query(
+            'INSERT INTO Section (venue_id, section_name, seating_capacity) VALUES (?, ?, ?)',
+            [venueId, 'Auto Generated', 260]
+        );
+        sectionId = newSection.insertId;
+    }
+
+    const seatValues = [];
+    const rows = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for (const row of rows) {
+        for (let num = 1; num <= 10; num++) {
+            seatValues.push([sectionId, `${row}${num}`, row]);
+        }
+    }
+
+    await connPool.query(
+        'INSERT INTO Seat (section_id, seat_number, row_num) VALUES ?',
+        [seatValues]
+    );
+}
+
 //GET endpoint for public ticket listing
 expRouter.get('/', async (req, res) => {
     try{
@@ -59,18 +105,62 @@ expRouter.get('/', async (req, res) => {
 //POST endpoint for creating ticket listing (only organizers)
 expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
     try{
-        const { eID, sID, tPrice } = req.body;                      //Read POST request JSON body information
-        
-        //Error handling
-        if (!eID || !sID || !validNum(Number(tPrice))) {
+        const oID = req.session.user.id;
+        const eID = Number(req.body.eID ?? req.body.eventId ?? req.body.event_id);
+        const seatLabel = req.body.seatNumber ?? req.body.seatLabel ?? req.body.seat ?? req.body.seat_id;
+        const tPrice = req.body.tPrice ?? req.body.ticketPrice ?? req.body.ticket_price;
+        const numericPrice = Number(tPrice);
+
+        if (!eID || !seatLabel || !validNum(numericPrice)) {
             return res.status(400).json({error: 'Invalid information.'});
         }
+
+        const [eventRows] = await connPool.query(
+            'SELECT venue_id FROM Event_ WHERE event_id = ? AND organizer_id = ?',
+            [eID, oID]
+        );
+        if (eventRows.length === 0){
+            return res.status(404).json({error: 'Event not found for organizer.'});
+        }
+
+        await ensureVenueSeats(eventRows[0].venue_id);
+
+        const parts = seatLabel.split('-').map(part => part.trim()).filter(Boolean);
+        let seatNumber, seatRow;
+        if (parts.length === 2){
+            [seatRow, seatNumber] = parts;
+        } else if (parts.length === 1){
+            seatNumber = parts[0];
+        } else {
+            return res.status(400).json({error: 'Invalid seat format. Use Row-SeatNumber (e.g., A-A1).'});
+        }
+
+        const seatQuery = `
+            SELECT s.seat_id
+            FROM Seat s
+            JOIN Section sec ON s.section_id = sec.section_id
+            WHERE sec.venue_id = ?
+              AND s.seat_number = ?
+              ${seatRow ? 'AND s.row_num = ?' : ''}
+        `;
+        const seatParams = [eventRows[0].venue_id, seatNumber];
+        if (seatRow){
+            seatParams.push(seatRow);
+        }
+        const [seatRows] = await connPool.query(seatQuery, seatParams);
+        if (seatRows.length === 0){
+            return res.status(400).json({error: 'Seat not found for this venue.'});
+        }
+        if (!seatRow && seatRows.length > 1){
+            return res.status(400).json({error: 'Seat identifier ambiguous. Include row (e.g., A-A1).'});
+        }
+        const sID = seatRows[0].seat_id;
 
         try {                                                           //INSERT a new ticket into the DB
             const [insertTicket] = await connPool.query(
                 `INSERT INTO Ticket (event_id, seat_id, ticket_price, ticket_status)
                 VALUES (?, ?, ?, 'Available')`,
-                [eID, sID, tPrice]
+                [eID, sID, numericPrice]
             );
 
             return res.status(201).json({message: 'Ticket successfully created.', ticketID: insertTicket.insertId});  //Success message, returning ticketID
@@ -83,6 +173,56 @@ expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
     } catch (error) {                                                   //Error handling and logging
         console.error('POST /api/tickets/error', error);
         res.status(500).json({error: 'Server error'});
+    }
+});
+
+//GET available seats for an event's venue (organizer only)
+expRouter.get('/available-seats', validAuth, validRole(['Organizer']), async (req, res) => {
+    try {
+        const oID = req.session.user.id;
+        const eID = Number(req.query.eID ?? req.query.eventId ?? req.query.event_id);
+
+        if (!eID) {
+            return res.status(400).json({ error: 'Event id required.' });
+        }
+
+        const [eventRows] = await connPool.query(
+            'SELECT venue_id FROM Event_ WHERE event_id = ? AND organizer_id = ?',
+            [eID, oID]
+        );
+
+        if (eventRows.length === 0) {
+            return res.status(404).json({ error: 'Event not found for organizer.' });
+        }
+
+        await ensureVenueSeats(eventRows[0].venue_id);
+
+        const [seatRows] = await connPool.query(
+            `
+            SELECT s.seat_id, s.row_num, s.seat_number, sec.section_name
+            FROM Seat s
+            JOIN Section sec ON s.section_id = sec.section_id
+            WHERE sec.venue_id = ?
+              AND s.seat_id NOT IN (
+                SELECT seat_id FROM Ticket WHERE event_id = ?
+              )
+            ORDER BY s.row_num, s.seat_number
+            `,
+            [eventRows[0].venue_id, eID]
+        );
+
+        const seats = seatRows.map(seat => ({
+            seat_id: seat.seat_id,
+            row_num: seat.row_num,
+            seat_number: seat.seat_number,
+            section_name: seat.section_name,
+            seat_label: seat.row_num ? `${seat.row_num}-${seat.seat_number}` : seat.seat_number
+        }));
+
+        res.json({ seats });
+    } catch (error) {
+        console.error('GET /api/tickets/available-seats error', error);
+        res.status(500).json({ error: 'Server error' });
     }
 });
 

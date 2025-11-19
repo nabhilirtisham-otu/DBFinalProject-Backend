@@ -238,7 +238,7 @@ expRouter.delete('/:id', validAuth, validRole(['Organizer']), async (req, res) =
 
     //Initial validation similar to previous endpoint
     try{
-        const orgID = req.session.user.users_id || req.session.user.id;     //Get the organizer uID from the current session object
+        const orgID = req.session.user.id;     //Get the organizer uID from the current session object
         const [evOrgID] = await connPool.query('SELECT organizer_id FROM Event_ WHERE event_id = ?', [eID]);    //Check the event organizer_id for ownership
         if (evOrgID.length === 0){                                                 //Ensures the event exists in the first place
             return res.status(404).json({error:'Event not found'});            

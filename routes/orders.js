@@ -11,7 +11,7 @@ const expRouter = expressLib.Router();
 
 // POST endpoint to create order + payment, and mark tickets as sold in a transaction
 expRouter.post("/", validAuth, async (req, res) => {
-    const uID = req.session.user.users_id || req.session.user.id;
+    const uID = req.session.user.id;
     if (!uID) {
         return res.status(401).json({ error: "Not authenticated." });
     }
@@ -110,8 +110,8 @@ expRouter.post("/", validAuth, async (req, res) => {
 
 // GET endpoint for retrieving order details (authenticated users only)
 expRouter.get("/:id", validAuth, async (req, res) => {
-    const oID = parseInt(req.params.id, 10);
-    if (!oID) {
+    const order_id = parseInt(req.params.id, 10);
+    if (!order_id) {
         return res.status(400).json({ error: "Order id invalid." });
     }
 
@@ -120,7 +120,7 @@ expRouter.get("/:id", validAuth, async (req, res) => {
     try {
         const [userOrders] = await connPool.query(
             "SELECT * FROM Orders WHERE order_id = ? AND users_id = ?",
-            [oID, uID]
+            [order_id, uID]
         );
         if (userOrders.length === 0) {
             return res
@@ -137,12 +137,12 @@ expRouter.get("/:id", validAuth, async (req, res) => {
             JOIN Event_ e ON t.event_id = e.event_id
             WHERE t.order_id = ?
         `,
-            [oID]
+            [order_id]
         );
 
         const [paymentInfo] = await connPool.query(
             "SELECT * FROM Payment WHERE order_id = ?",
-            [oID]
+            [order_id]
         );
 
         res.json({
@@ -159,7 +159,7 @@ expRouter.get("/:id", validAuth, async (req, res) => {
 
 // GET endpoint for listing all the orders for the current logged-in user
 expRouter.get("/", validAuth, async (req, res) => {
-    const uID = req.session.user.users_id || req.session.user.id;
+    const uID = req.session.user.id;
     try {
         const [orderRows] = await connPool.query(
             "SELECT * FROM Orders WHERE users_id = ? ORDER BY order_date DESC",
