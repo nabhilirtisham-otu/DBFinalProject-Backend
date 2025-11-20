@@ -72,8 +72,10 @@ expRouter.get('/', async (req, res) => {
             filterParams.push(status);
         }
 
-        let filterStmt = `SELECT t.ticket_id, t.event_id, t.seat_id, t.ticket_price, t.ticket_status, s.row_num, s.seat_number
-        FROM Ticket t JOIN Seat s ON t.seat_id = s.seat_id`;    //Returns ticket and row information
+        let filterStmt = `SELECT t.ticket_id, t.event_id, t.seat_id, t.ticket_price, t.ticket_status, s.row_num, s.seat_number, sec.section_name
+        FROM Ticket t
+        JOIN Seat s ON t.seat_id = s.seat_id
+        JOIN Section sec ON s.section_id = sec.section_id`;    //Returns ticket, seat, and section information
 
         if (filterInfo.length){                             //Adds any filter conditions to the SQL statement
             filterStmt += ' WHERE ' + filterInfo.join(' AND ');

@@ -67,20 +67,12 @@ RIGHT JOIN Payment p ON p.order_id = o.order_id;
 
 CREATE VIEW DBUsers AS
 SELECT
-    users_name,
-    email,
-    user_role
-FROM Users
-WHERE user_role = 'Organizer'
-
-UNION
-
-SELECT
+    u.users_id,
     u.users_name,
     u.email,
-    u.user_role
-FROM Users u
-JOIN Orders o ON u.users_id = o.users_id;
+    u.user_role,
+    u.date_created
+FROM Users u;
 
 CREATE VIEW OrganizerRevenue AS
 SELECT 

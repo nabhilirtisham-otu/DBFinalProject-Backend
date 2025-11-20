@@ -282,8 +282,10 @@ expRouter.get('/:id', async (req, res) => {
         );
         const [eventTickets] = await connPool.query(                    //Return a list of tickets for the specified event, along with seat details
             `SELECT t.ticket_id, t.seat_id, t.ticket_price, t.ticket_status,
-                s.section_id, s.seat_number, s.row_num
-            FROM Ticket t JOIN Seat s ON t.seat_id = s.seat_id
+                s.section_id, s.seat_number, s.row_num, sec.section_name
+            FROM Ticket t 
+            JOIN Seat s ON t.seat_id = s.seat_id
+            LEFT JOIN Section sec ON s.section_id = sec.section_id
             WHERE t.event_id = ? LIMIT 300`, [eventID]
         );
         res.json({ event, ticketCounts, eventTickets });                //Send a JSON response with event, ticket count, and ticket list details

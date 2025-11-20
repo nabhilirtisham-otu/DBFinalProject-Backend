@@ -172,4 +172,55 @@ expRouter.get("/", validAuth, async (req, res) => {
     }
 });
 
+// DELETE endpoint for removing an order and releasing tickets
+expRouter.delete("/:id", validAuth, async (req, res) => {
+    const order_id = parseInt(req.params.id, 10);
+    if (!order_id) {
+        return res.status(400).json({ error: "Order id invalid." });
+    }
+
+    const uID = req.session.user.id;
+    const connDB = await connPool.getConnection();
+
+    try {
+        await connDB.beginTransaction();
+
+        const [orderRows] = await connDB.query(
+            "SELECT order_id FROM Orders WHERE order_id = ? AND users_id = ? FOR UPDATE",
+            [order_id, uID]
+        );
+
+        if (orderRows.length === 0) {
+            await connDB.rollback();
+            return res.status(404).json({ error: "Order not found." });
+        }
+
+        await connDB.query(
+            `
+            UPDATE Ticket
+            SET ticket_status = 'Available',
+                order_id = NULL
+            WHERE order_id = ?
+        `,
+            [order_id]
+        );
+
+        await connDB.query("DELETE FROM Payment WHERE order_id = ?", [order_id]);
+        await connDB.query("DELETE FROM Orders WHERE order_id = ?", [order_id]);
+
+        await connDB.commit();
+        res.json({ message: "Order deleted successfully." });
+    } catch (error) {
+        console.error("DELETE /api/orders/:id error", error);
+        try {
+            await connDB.rollback();
+        } catch (err) {
+            console.error("Rollback error", err);
+        }
+        res.status(500).json({ error: "Server error deleting order." });
+    } finally {
+        connDB.release();
+    }
+});
+
 module.exports = expRouter;
