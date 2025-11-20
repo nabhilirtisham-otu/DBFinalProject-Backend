@@ -30,7 +30,7 @@ This is the backend for our database final project TickIt, built with Node.js, E
 - Create a `.env` file in the project root (same level as `main.js`).
 - `npm install` will create `node_modules/` automatically; no other generated folders are required.
 
-## Environment variables (.env)
+## Environment Variables (.env)
 ```
 PORT=3000
 DBHOST=localhost
@@ -42,12 +42,12 @@ SESSIONSECRET=some_long_random_string
 OPENWEATHERAPIKEY=your_openweather_api_key
 ```
 
-## Database setup
+## Database Setup
 1) Create the database: `CREATE DATABASE event_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
 2) Load schema: `mysql -u <user> -p event_db < tables.sql`
 3) Load sample data: `mysql -u <user> -p event_db < sample_data.sql`
 
-## Install & run
+## Install & Run
 1) Install dependencies: `npm install`
 2) Start in dev mode with reload: `npm run dev`
 3) Start normally: `npm start`
