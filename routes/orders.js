@@ -1,4 +1,3 @@
-// routes/orders.js
 /*
 Defines routes for listing, creating, updating, and deleting orders
 */
@@ -9,7 +8,7 @@ const { validAuth } = require("../middleware/auth.js");
 
 const expRouter = expressLib.Router();
 
-// POST endpoint to create order + payment, and mark tickets as sold in a transaction
+//POST endpoint to create order + payment, mark tickets as sold
 expRouter.post("/", validAuth, async (req, res) => {
     const uID = req.session.user.id;
     if (!uID) {
@@ -108,7 +107,7 @@ expRouter.post("/", validAuth, async (req, res) => {
     }
 });
 
-// GET endpoint for retrieving order details (authenticated users only)
+//GET endpoint retrieving order details (authenticated users only)
 expRouter.get("/:id", validAuth, async (req, res) => {
     const order_id = parseInt(req.params.id, 10);
     if (!order_id) {
@@ -157,7 +156,7 @@ expRouter.get("/:id", validAuth, async (req, res) => {
     }
 });
 
-// GET endpoint for listing all the orders for the current logged-in user
+//GET endpoint listing all the orders for current logged-in user
 expRouter.get("/", validAuth, async (req, res) => {
     const uID = req.session.user.id;
     try {
@@ -172,7 +171,7 @@ expRouter.get("/", validAuth, async (req, res) => {
     }
 });
 
-// DELETE endpoint for removing an order and releasing tickets
+//DELETE endpoint removing an order and releasing tickets
 expRouter.delete("/:id", validAuth, async (req, res) => {
     const order_id = parseInt(req.params.id, 10);
     if (!order_id) {

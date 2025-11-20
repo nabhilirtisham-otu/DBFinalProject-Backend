@@ -39,10 +39,10 @@ mainApp.use(sessionPkg({
     resave: false,                                      //If the session isn't modified, it isn't stored
     saveUninitialized: false,                           //Unauthenticated users don't have sessions created
     cookie: {
-        maxAge: 86400000,      // 1 day
-        secure: false,         // ok for http on localhost/127.0.0.1
-        httpOnly: true,        // JS cannot read cookie
-        sameSite: "lax"        // explicit, works for same-site fetches
+        maxAge: 86400000,      //1 day
+        secure: false,         //ok for http on localhost/127.0.0.1
+        httpOnly: true,        //JS cannot read cookie
+        sameSite: "lax"        //explicit, works for same-site fetches
     }
 }));
 

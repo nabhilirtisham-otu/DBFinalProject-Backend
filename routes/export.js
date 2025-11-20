@@ -1,4 +1,3 @@
-// routes/export.js
 /*
 CSV and PDF export routes
 */
@@ -9,7 +8,7 @@ const pdfkitLib = require("pdfkit");
 
 const expRouter = expressLib.Router();
 
-// Retrieve event and venue data
+//Retrieve event and venue data
 async function fetchEvents() {
     const [evVenRows] = await connPool.query(
         `
@@ -24,7 +23,7 @@ async function fetchEvents() {
     return evVenRows;
 }
 
-// CSV export route
+//CSV export route
 expRouter.get("/events.csv", async (req, res) => {
     try {
         const eventRows = await fetchEvents();
@@ -69,7 +68,7 @@ expRouter.get("/events.csv", async (req, res) => {
     }
 });
 
-// PDF export route
+//PDF export route
 expRouter.get("/events.pdf", async (req, res) => {
     try {
         const eventRows = await fetchEvents();

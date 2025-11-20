@@ -1,3 +1,7 @@
+/*
+Defines basic settings used in establishing a connection to the database.
+*/
+
 {
     "sqltools.connections": [
         {

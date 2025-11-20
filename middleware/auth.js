@@ -1,10 +1,9 @@
-// middleware/auth.js
 /*
 Authentication and authorization logic. Intercept HTTP requests before reaching main
 route handlers and validate them before either letting them proceed or blocking them.
 */
 
-// Checks if the user is logged in
+//Checks if user is logged in
 function validAuth(req, res, next) {
     if (req.session && req.session.user) {
         return next();
@@ -13,9 +12,9 @@ function validAuth(req, res, next) {
     }
 }
 
-// Checks if user role is valid (supports single role string or array of roles)
+//Checks if user role is valid (supports single role string or array of roles)
 function validRole(roles) {
-    // normalize roles to an array
+    //normalize roles to an array
     const allowed = Array.isArray(roles) ? roles : [roles];
 
     return (req, res, next) => {
@@ -33,7 +32,7 @@ function validRole(roles) {
     };
 }
 
-// User logout
+//User logout
 function destroySess(req, res) {
     req.session.destroy((err) => {
         if (err) {
@@ -45,4 +44,4 @@ function destroySess(req, res) {
     });
 }
 
-module.exports = { validAuth, validRole, destroySess };
+module.exports = { validAuth, validRole, destroySess };                 //Export functions to be used elsewhere

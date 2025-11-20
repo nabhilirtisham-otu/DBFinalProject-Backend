@@ -1,4 +1,3 @@
-// routes/auth.js
 /*
 Handles registration, login, and logout.
 */
@@ -9,7 +8,7 @@ const dbHelper = require("../dbHelper.js");
 const { validAuth, destroySess } = require("../middleware/auth.js");
 const expRouter = expresslib.Router();
 
-// User registration POST route
+//User registration POST route
 expRouter.post("/register", async (req, res) => {
     let dbConn;
     try {
@@ -72,7 +71,7 @@ expRouter.post("/register", async (req, res) => {
     }
 });
 
-// User login POST route
+//User login POST route
 expRouter.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -98,7 +97,7 @@ expRouter.post("/login", async (req, res) => {
             return res.status(401).json({ message: "Invalid credentials." });
         }
 
-        // Store session info. Use both users_id and id to be safe for older code.
+        //Store session info
         req.session.user = {
             users_id: user.users_id,
             id: user.users_id,
@@ -114,7 +113,7 @@ expRouter.post("/login", async (req, res) => {
     }
 });
 
-// Check current session
+//Check current session
 expRouter.get("/session", (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({loggedIn: false});
@@ -125,7 +124,7 @@ expRouter.get("/session", (req, res) => {
     });
 });
 
-// Logout user, refers to functions in middleware/auth.js
+//Logout user, refers to functions in middleware/auth.js
 expRouter.post("/logout", validAuth, destroySess);
 
 module.exports = expRouter;

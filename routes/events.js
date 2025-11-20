@@ -9,7 +9,7 @@ const connPool = require('../dbHelper.js');
 
 const expRouter = expressLib.Router();                                  //Router instance
 
-// GET all venues
+//GET all venues
 expRouter.get("/venues/all", async (req, res) => {
     console.log("HIT /api/events/venues/all");
     try {
@@ -85,7 +85,7 @@ expRouter.get('/', async(req, res) => {
     }
 });
 
-// GET /api/events/cities - return distinct cities
+//GET /api/events/cities - return distinct cities
 expRouter.get('/cities', async (req, res) => {
     try {
         const [rows] = await connPool.query(`
@@ -107,7 +107,6 @@ expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
     try {
         const orgID = req.session.user.id;
 
-        // FIXED: match frontend field names
         const vID = req.body.venue_id;
         const title = req.body.title;
         const eventDesc = req.body.event_description;
@@ -119,7 +118,7 @@ expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
         const categories = req.body.categories || [];
         const performers = req.body.performers || [];
 
-        // Validation
+        //Validation
         if (!validString(title) || !vID || !validDate(startTime)) {
             return res.status(400).json({ error: 'Missing/invalid fields.' });
         }
@@ -128,7 +127,7 @@ expRouter.post('/', validAuth, validRole(['Organizer']), async (req, res) => {
             return res.status(400).json({ error: 'Invalid price.' });
         }
 
-        // Insert event
+        //Insert event
         const [newEvent] = await connPool.query(
             `INSERT INTO Event_ 
                 (organizer_id, venue_id, title, event_description, start_time, end_time,

@@ -17,8 +17,6 @@ TRUNCATE TABLE Users;
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- INSERT USERS
-
 INSERT INTO Users (users_name, email, pwd, user_role) VALUES
 ('Nabhil Irtisham', 'nabhil.irtisham@gmail.com', 'pwd123', 'Organizer'),
 ('Vlad Stetca', 'vlad.stetca@gmail.com', 'iloveromania', 'Organizer'),
@@ -28,14 +26,10 @@ INSERT INTO Users (users_name, email, pwd, user_role) VALUES
 ('Papa Louie', 'papa.coolmat@outlook.com', 'pizza!pizza!', 'Organizer'),
 ('Dexter Morgan', 'dexter.morgan@mmpdmail.com', 'DaRealBHB123', 'Customer');
 
--- INSERT ORGANIZERS (linked to Users)
-
 INSERT INTO Organizer (organizer_id, organization_name, phone) VALUES
 (1, 'Saturn Staging & Events', '416-555-1010'),
 (2, 'Energy Productions', '416-555-2020'),
 (6, 'FreeFlow Entertainment', '647-555-3030');
-
--- INSERT VENUES
 
 INSERT INTO Venue (venue_name, loc_address, city, holding_capacity) VALUES
 ('Metro Arena', '100 King St W', 'Toronto', 10000),
@@ -46,8 +40,6 @@ INSERT INTO Venue (venue_name, loc_address, city, holding_capacity) VALUES
 ('Crescent Center', '300 Bloor St', 'Berlin', 3000),
 ('Union Square Amphitheater', '45 Union Ave', 'Los Angeles', 7000);
 
--- INSERT EVENTS
-
 INSERT INTO Event_ (organizer_id, venue_id, title, event_description, start_time, end_time, standard_price, event_status) VALUES
 (1, 1, 'Summer Beats Festival', 'Outdoor music concert', '2025-07-01 18:00:00', '2025-07-01 23:00:00', 120.00, 'Scheduled'),
 (2, 2, 'Comedy Night', 'Stand-up comedy showcase', '2025-06-15 19:30:00', '2025-06-15 22:00:00', 75.00, 'Ongoing'),
@@ -56,8 +48,6 @@ INSERT INTO Event_ (organizer_id, venue_id, title, event_description, start_time
 (1, 5, 'Championship Finals', 'Sports event finals', '2025-11-20 16:00:00', '2025-11-20 20:00:00', 150.00, 'Cancelled'),
 (2, 6, 'Tech Expo 2025', 'Technology and startup showcase', '2025-10-12 09:00:00', '2025-10-12 17:00:00', 40.00, 'Scheduled'),
 (6, 7, 'Food & Wine Gala', 'Gourmet tasting experience', '2025-12-15 18:00:00', '2025-12-15 23:00:00', 110.00, 'Ongoing');
-
--- INSERT SECTIONS
 
 INSERT INTO Section (venue_id, section_name, seating_capacity) VALUES
 (1, 'Floor A', 3000),
@@ -68,8 +58,6 @@ INSERT INTO Section (venue_id, section_name, seating_capacity) VALUES
 (5, 'General', 8000),
 (6, 'Exhibit Area', 1500);
 
--- INSERT SEATS
-
 INSERT INTO Seat (section_id, seat_number, row_num) VALUES
 (1, 'A1', 'A'),
 (1, 'A2', 'A'),
@@ -78,8 +66,6 @@ INSERT INTO Seat (section_id, seat_number, row_num) VALUES
 (4, 'D1', 'D'),
 (5, 'E1', 'E'),
 (6, 'F1', 'F');
-
--- INSERT ORDERS
 
 INSERT INTO Orders (users_id, order_amount, order_status) VALUES
 (3, 120.00, 'Pending'),
@@ -90,8 +76,6 @@ INSERT INTO Orders (users_id, order_amount, order_status) VALUES
 (5, 40.00, 'Paid'),
 (4, 110.00, 'Pending');
 
--- INSERT PAYMENTS
-
 INSERT INTO Payment (order_id, payment_method, payment_amount, payment_status) VALUES
 (1, 'Credit', 120.00, 'Completed'),
 (2, 'Debit', 75.00, 'Completed'),
@@ -100,8 +84,6 @@ INSERT INTO Payment (order_id, payment_method, payment_amount, payment_status) V
 (5, 'Debit', 85.00, 'Refunded'),
 (6, 'Credit', 40.00, 'Completed'),
 (7, 'Cash', 110.00, 'Pending');
-
--- INSERT TICKETS (Linked to Orders for 'Sold')
 
 INSERT INTO Ticket (event_id, seat_id, ticket_price, ticket_status, order_id) VALUES
 (1, 1, 120.00, 'Available', NULL),
@@ -112,8 +94,6 @@ INSERT INTO Ticket (event_id, seat_id, ticket_price, ticket_status, order_id) VA
 (5, 6, 150.00, 'Sold', 4),
 (6, 7, 40.00, 'Reserved', NULL);
 
--- INSERT PERFORMERS
-
 INSERT INTO Performer (performer_name, genre) VALUES
 ('DJ Nova', 'Electronic'),
 ('Luna Beats', 'Pop'),
@@ -122,8 +102,6 @@ INSERT INTO Performer (performer_name, genre) VALUES
 ('The Laugh Crew', 'Comedy'),
 ('Orion String Quartet', 'Classical'),
 ('Spice Harmony', 'Fusion');
-
--- INSERT CATEGORIES
 
 INSERT INTO Category (category_name, category_description) VALUES
 ('Music', 'Concerts, festivals, and live performances'),
@@ -134,8 +112,6 @@ INSERT INTO Category (category_name, category_description) VALUES
 ('Food', 'Culinary events and tastings'),
 ('Culture', 'Art shows and cultural exhibitions');
 
--- INSERT NOTIFICATIONS
-
 INSERT INTO Notif (users_id, event_id, notification_message, notification_status) VALUES
 (3, 1, 'Your ticket for Summer Beats Festival is confirmed.', 'Unread'),
 (4, 2, 'Reminder: Comedy Night tomorrow!', 'Read'),
@@ -145,8 +121,6 @@ INSERT INTO Notif (users_id, event_id, notification_message, notification_status
 (4, 6, 'Tech Expo 2025 passes released.', 'Unread'),
 (5, 7, 'Food & Wine Gala early bird discount!', 'Unread');
 
--- INSERT EVENT-PERFORMER LINKS
-
 INSERT INTO Event_Performer (event_id, performer_id) VALUES
 (1, 1),
 (1, 2),
@@ -155,8 +129,6 @@ INSERT INTO Event_Performer (event_id, performer_id) VALUES
 (4, 4),
 (5, 6),
 (7, 7);
-
--- INSERT EVENT-CATEGORY LINKS
 
 INSERT INTO Event_Category (event_id, category_id) VALUES
 (1, 1),

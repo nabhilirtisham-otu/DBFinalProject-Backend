@@ -1,4 +1,3 @@
-// routes/orgEvents.js
 /*
 Organizer CRUD route for events
 */
@@ -9,7 +8,7 @@ const { validAuth, validRole } = require("../middleware/auth.js");
 
 const expRouter = expressLib.Router();
 
-// GET all venues for event creation
+//GET all venues for event creation
 expRouter.get(
     "/venues/all",
     validAuth,
@@ -30,7 +29,7 @@ expRouter.get(
     }
 );
 
-// GET endpoint to retrieve events for a logged-in organizer
+//GET endpoint to retrieve events for a logged-in organizer
 expRouter.get(
     "/",
     validAuth,
@@ -57,7 +56,7 @@ expRouter.get(
     }
 );
 
-// POST endpoint to create events
+//POST endpoint to create events
 expRouter.post(
     "/",
     validAuth,
@@ -97,7 +96,7 @@ expRouter.post(
     }
 );
 
-// GET endpoint to retrieve single events
+//GET endpoint to retrieve single events
 expRouter.get(
     "/:id",
     validAuth,
@@ -128,7 +127,7 @@ expRouter.get(
     }
 );
 
-// PUT endpoint to update an event
+//PUT endpoint to update an event
 expRouter.put(
     "/:id",
     validAuth,
@@ -171,7 +170,7 @@ expRouter.put(
     }
 );
 
-// DELETE endpoint to delete an event
+//DELETE endpoint to delete an event
 expRouter.delete(
     "/:id",
     validAuth,
@@ -196,4 +195,4 @@ expRouter.delete(
     }
 );
 
-module.exports = expRouter;
+module.exports = expRouter;                         //Export to allow usage elsewhere
