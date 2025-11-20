@@ -46,7 +46,6 @@ OPENWEATHERAPIKEY=your_openweather_api_key
 1) Create the database: `CREATE DATABASE event_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`
 2) Load schema: `mysql -u <user> -p event_db < tables.sql`
 3) Load sample data: `mysql -u <user> -p event_db < sample_data.sql`
-4) Create views (if not already included): `mysql -u <user> -p event_db < views.sql`
 
 ## Install & run
 1) Install dependencies: `npm install`
